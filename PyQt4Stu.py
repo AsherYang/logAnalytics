@@ -317,7 +317,8 @@ class InputDialog(QtGui.QWidget):
         self.button = QtGui.QPushButton('Dialog', self)
         self.button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.button.move(20, 20)
-        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog())
+        # 这里的槽函数为 self.dialog. (信号槽简写版)，请注意这里这里没有括号()。 否则会出错(直接调出showDialog函数了，导致异常)
+        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog)
         self.setFocus()
 
         self.label = QtGui.QLineEdit(self)
@@ -342,7 +343,7 @@ class ColorDialog(QtGui.QWidget):
         self.button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.move(20, 20)
 
-        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog())
+        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog)
         self.setFocus()
 
         self.widget = QtGui.QWidget(self)
@@ -367,7 +368,7 @@ class FontDialog(QtGui.QWidget):
         button.move(20, 20)
 
         hbox.addWidget(button)
-        self.connect(button, QtCore.SIGNAL('clicked()'), self.showDialog())
+        self.connect(button, QtCore.SIGNAL('clicked()'), self.showDialog)
 
         self.label = QtGui.QLabel('Knowledge only matters', self)
         self.label.move(130, 20)
@@ -459,11 +460,11 @@ if __name__ == "__main__":
     # emit = Emit()
     # emit.show()
 
-    # input dialog . 有问题, 以及以下有问题的地方都是：showDialog 之后，之前的窗口部件没有了
+    # input dialog
     # inputDialog = InputDialog()
     # inputDialog.show()
 
-    # color dialog . 有问题
+    # color dialog
     # colorDialog = ColorDialog()
     # colorDialog.show()
 
