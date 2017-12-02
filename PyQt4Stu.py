@@ -292,6 +292,95 @@ class Escape(QtGui.QWidget):
             self.close()
 
 
+class Emit(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self)
+
+        self.resize(500, 250)
+        self.setWindowTitle('emit')
+
+        # 创建一个 closeEmitApp 信号
+        self.connect(self, QtCore.SIGNAL('closeEmitApp()'), QtCore.SLOT('close()'))
+
+    def mousePressEvent(self, event):
+        # 点击鼠标将发送该信号
+        self.emit(QtCore.SIGNAL('closeEmitApp()'))
+
+
+class InputDialog(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self)
+
+        self.resize(500, 250)
+        self.setWindowTitle('InputDialog')
+
+        self.button = QtGui.QPushButton('Dialog', self)
+        self.button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.button.move(20, 20)
+        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog())
+        self.setFocus()
+
+        self.label = QtGui.QLineEdit(self)
+        self.label.move(130, 22)
+
+    def showDialog(self):
+        text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog', 'Enter your name:')
+        if ok:
+            self.label.setText(unicode(text))
+
+
+class ColorDialog(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self)
+
+        self.resize(500, 250)
+        self.setWindowTitle('ColorDialog')
+
+        color = QtGui.QColor(0, 0, 0)
+
+        self.button = QtGui.QPushButton('Dialog', self)
+        self.button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.move(20, 20)
+
+        self.connect(self.button, QtCore.SIGNAL('clicked()'), self.showDialog())
+        self.setFocus()
+
+        self.widget = QtGui.QWidget(self)
+        self.widget.setStyleSheet('QWidget {background-color: %s}' %color.name())
+        self.widget.setGeometry(130, 22, 100, 100)
+
+    def showDialog(self):
+        col = QtGui.QColorDialog.getColor()
+        if col.isValid():
+            self.widget.setStyleSheet('QWidget {background-color: %s}' %col.name())
+
+
+class FontDialog(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self)
+        self.resize(500, 250)
+        self.setWindowTitle('FontDialog')
+
+        hbox = QtGui.QHBoxLayout()
+        button = QtGui.QPushButton('Dialog', self)
+        button.setFocusPolicy(QtCore.Qt.NoFocus)
+        button.move(20, 20)
+
+        hbox.addWidget(button)
+        self.connect(button, QtCore.SIGNAL('clicked()'), self.showDialog())
+
+        self.label = QtGui.QLabel('Knowledge only matters', self)
+        self.label.move(130, 20)
+
+        hbox.addWidget(self.label, 1)
+        self.setLayout(hbox)
+
+    def showDialog(self):
+        font, ok = QtGui.QFontDialog.getFont()
+        if ok:
+            self.label.setFont(font)
+
+
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     # label = QtGui.QLabel("<center>Hello World with PyQt5!</center>")
@@ -363,7 +452,23 @@ if __name__ == "__main__":
     # sigSlot.show()
 
     # 重写事件处理函数
-    escape = Escape()
-    escape.show()
+    # escape = Escape()
+    # escape.show()
+
+    # 手动发射信号
+    # emit = Emit()
+    # emit.show()
+
+    # input dialog . 有问题, 以及以下有问题的地方都是：showDialog 之后，之前的窗口部件没有了
+    # inputDialog = InputDialog()
+    # inputDialog.show()
+
+    # color dialog . 有问题
+    # colorDialog = ColorDialog()
+    # colorDialog.show()
+
+    # font dialog
+    fontDialog = FontDialog()
+    fontDialog.show()
 
     sys.exit(app.exec_())
