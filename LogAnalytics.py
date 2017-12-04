@@ -59,7 +59,11 @@ class Ui_MainWindow(object):
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
-    label = QtGui.QLabel("<center>Hello World with PyQt4!</center>")
-    label.resize(500, 400)
-    label.show()
+    # label = QtGui.QLabel("<center>Hello World with PyQt4!</center>")
+    # label.resize(500, 400)
+    # label.show()
+    mainWin = QtGui.QMainWindow()
+    uiMainWin = Ui_MainWindow()
+    uiMainWin.setupUi(mainWin)
+    mainWin.show()
     sys.exit(app.exec_())
