@@ -93,11 +93,11 @@ class LogMainWindow(QtGui.QMainWindow):
         file.addAction(saveLogFileAction)
 
         setting = menuBar.addMenu('&Setting')
-        tools = menuBar.addMenu('Tools')
+        tools = menuBar.addMenu('&Tools')
 
-        self.textEdit = QtGui.QTextEdit()
-        self.textEdit.setFont(self.getFont('Monospace'))
-        self.setCentralWidget(self.textEdit)
+        self.logAnalyticsEdit = QtGui.QTextEdit()
+        self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
+        self.setCentralWidget(self.logAnalyticsEdit)
 
     def getFont(self, fontStr):
         font = QtGui.QFont()
@@ -113,7 +113,7 @@ class LogMainWindow(QtGui.QMainWindow):
         file = open(fileName)
         data = file.read()
         file.close()
-        self.textEdit.setText(_translate('', data, None))
+        self.logAnalyticsEdit.setText(_translate('', data, None))
 
     def openFile2(self):
         fileName = unicode(QtGui.QFileDialog.getOpenFileName(self, 'Open file 2', './', 'log files(*.log *.md *.txt)'))
@@ -122,7 +122,7 @@ class LogMainWindow(QtGui.QMainWindow):
         file = open(fileName)
         data = file.read()
         file.close()
-        self.textEdit.setText(_translate('', data, None))
+        self.logAnalyticsEdit.setText(_translate('', data, None))
 
     def saveLogFile(self):
         fileName = unicode(QtGui.QFileDialog.getSaveFileName(self, 'save File', './'))
@@ -135,7 +135,7 @@ class LogMainWindow(QtGui.QMainWindow):
             QtGui.QMessageBox.information(self, "Unable to open file",
                                           "There was an error opening \"%s\"" % fileName)
             return
-        text = str(self.textEdit.toPlainText())
+        text = str(self.logAnalyticsEdit.toPlainText())
         # pickle.dump(text, out_file)
         out_file.write(text)
         out_file.close()
