@@ -29,61 +29,26 @@ except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName(_fromUtf8("MainWindow"))
+class Ui_MainWidget(object):
+    def setupUi(self, mainWindow):
+        self.mainwindow = mainWindow
+        mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
-        self.centralwidget = QtGui.QWidget(MainWindow)
+        self.centralwidget = QtGui.QWidget(mainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
-        self.label = QtGui.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(20, 10, 121, 21))
-        self.label.setObjectName(_fromUtf8("label"))
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 23))
-        self.menubar.setObjectName(_fromUtf8("menubar"))
-        self.menu = QtGui.QMenu(self.menubar)
-        self.menu.setObjectName(_fromUtf8("menu"))
-        self.menu_2 = QtGui.QMenu(self.menubar)
-        self.menu_2.setObjectName(_fromUtf8("menu_2"))
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtGui.QStatusBar(MainWindow)
-        self.statusbar.setObjectName(_fromUtf8("statusbar"))
-        MainWindow.setStatusBar(self.statusbar)
-        self.menubar.addAction(self.menu.menuAction())
-        self.menubar.addAction(self.menu_2.menuAction())
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
-        self.label.setText(_translate("MainWindow", "TextLabel", None))
-        self.menu.setTitle(_translate("MainWindow", "选择文件", None))
-        self.menu_2.setTitle(_translate("MainWindow", "设置", None))
-
-
-class LogMainWindow(QtGui.QMainWindow):
-    def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self)
-
-        screen = QtGui.QDesktopWidget().screenGeometry()
-        self.resize(screen.width() / 4 * 3, screen.height() / 4 * 3)
-        self.setWindowTitle('LogAnalytics')
-
-        self.statusBar()
-
-        menuBar = self.menuBar()
-        file = menuBar.addMenu(' &File')
-        openFile1Action = QtGui.QAction('Open file 1', self)
+        self.statusBar = QtGui.QStatusBar(mainWindow)
+        self.menubar = QtGui.QMenuBar(mainWindow)
+        file = self.menubar.addMenu(' &File')
+        openFile1Action = QtGui.QAction('Open file 1', mainWindow)
         openFile1Action.setStatusTip(_fromUtf8('选择文件1'))
         openFile1Action.connect(openFile1Action, QtCore.SIGNAL('triggered()'), self.openFile1)
 
-        openFile2Action = QtGui.QAction('Open file 2', self)
+        openFile2Action = QtGui.QAction('Open file 2', mainWindow)
         openFile2Action.setStatusTip(_fromUtf8('选择文件2'))
         openFile2Action.connect(openFile2Action, QtCore.SIGNAL('triggered()'), self.openFile2)
 
-        saveLogFileAction = QtGui.QAction('Save file', self)
+        saveLogFileAction = QtGui.QAction('Save file', mainWindow)
         saveLogFileAction.setStatusTip(_fromUtf8('保存日志分析文件'))
         saveLogFileAction.setShortcut('Ctrl+Alt+S')
         saveLogFileAction.connect(saveLogFileAction, QtCore.SIGNAL('triggered()'), self.saveLogFile)
@@ -92,12 +57,16 @@ class LogMainWindow(QtGui.QMainWindow):
         file.addAction(openFile2Action)
         file.addAction(saveLogFileAction)
 
-        setting = menuBar.addMenu('&Setting')
-        tools = menuBar.addMenu('&Tools')
+        setting = self.menubar.addMenu('&Setting')
+        tools = self.menubar.addMenu('&Tools')
 
-        self.logAnalyticsEdit = QtGui.QTextEdit()
+        # 需要设置添加到 self.centralwidget
+        self.logAnalyticsEdit = QtGui.QTextEdit(self.centralwidget)
         self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
-        self.setCentralWidget(self.logAnalyticsEdit)
+
+        mainWindow.setMenuBar(self.menubar)
+        mainWindow.setStatusBar(self.statusBar)
+        mainWindow.setCentralWidget(self.centralwidget)
 
     def getFont(self, fontStr):
         font = QtGui.QFont()
@@ -107,7 +76,7 @@ class LogMainWindow(QtGui.QMainWindow):
         return font
 
     def openFile1(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(self, 'Open file 1', './', 'log files(*.log *.md *.txt)'))
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file 1', './', 'log files(*.log *.md *.txt)'))
         if not fileName:
             return
         file = open(fileName)
@@ -116,7 +85,7 @@ class LogMainWindow(QtGui.QMainWindow):
         self.logAnalyticsEdit.setText(_translate('', data, None))
 
     def openFile2(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(self, 'Open file 2', './', 'log files(*.log *.md *.txt)'))
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file 2', './', 'log files(*.log *.md *.txt)'))
         if not fileName:
             return
         file = open(fileName)
@@ -125,14 +94,14 @@ class LogMainWindow(QtGui.QMainWindow):
         self.logAnalyticsEdit.setText(_translate('', data, None))
 
     def saveLogFile(self):
-        fileName = unicode(QtGui.QFileDialog.getSaveFileName(self, 'save File', './'))
+        fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './'))
         if not fileName:
             return
 
         try:
             out_file = open(str(fileName), 'wb')
         except IOError:
-            QtGui.QMessageBox.information(self, "Unable to open file",
+            QtGui.QMessageBox.information(None, "Unable to open file",
                                           "There was an error opening \"%s\"" % fileName)
             return
         text = str(self.logAnalyticsEdit.toPlainText())
@@ -142,15 +111,19 @@ class LogMainWindow(QtGui.QMainWindow):
         # print text
         print fileName
 
+class LogMainWindow(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self)
+
+        screen = QtGui.QDesktopWidget().screenGeometry()
+        self.resize(screen.width() / 4 * 3, screen.height() / 4 * 3)
+        self.setWindowTitle('LogAnalytics')
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
-    # label = QtGui.QLabel("<center>Hello World with PyQt4!</center>")
-    # label.resize(500, 400)
-    # label.show()
-    # mainWin = QtGui.QMainWindow()
     logMainWin = LogMainWindow()
-    # uiMainWin = Ui_MainWindow()
-    # uiMainWin.setupUi(logMainWin)
+    uiMainWidget = Ui_MainWidget()
+    uiMainWidget.setupUi(logMainWin)
     logMainWin.show()
     sys.exit(app.exec_())
