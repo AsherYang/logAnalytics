@@ -151,6 +151,7 @@ class Ui_MainWidget(object):
             else:
                 logTxtName += '.txt'
         # print logTxtName
+        logTxtName = _translate('', logTxtName, None)
         fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + logTxtName))
         if not fileName:
             return
