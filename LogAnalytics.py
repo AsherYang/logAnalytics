@@ -64,17 +64,32 @@ class Ui_MainWidget(object):
         mainWindow.setMenuBar(self.menubar)
         mainWindow.setStatusBar(self.statusBar)
 
+        # vBoxLayout 和 hBoxLayout 的选择依据是：根据2个控件的排列方向，上下排(vBoxLayout)还是左右排(hBoxLayout)
         vBoxLayout = QtGui.QVBoxLayout()
         hBboxLayout = QtGui.QHBoxLayout()
+        vFilterBoxLayout = QtGui.QVBoxLayout()
+        hFilterBoxLayout = QtGui.QHBoxLayout()
 
         # 需要设置添加到 self.centralwidget
         self.logAnalyticsEdit = QtGui.QTextEdit()
         self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
 
+        self.filterLineEdit = QtGui.QLineEdit()
+        self.filterLineEdit.setFont(self.getFont('Monospace'))
+        self.filterBtn = QtGui.QPushButton()
+        self.filterBtn.setText(u'Filter')
+        hFilterBoxLayout.addWidget(self.filterLineEdit)
+        hFilterBoxLayout.addWidget(self.filterBtn)
         self.tabWidget = QtGui.QTableWidget()
 
-        hBboxLayout.addWidget(self.tabWidget)
+        vFilterBoxLayout.addLayout(hFilterBoxLayout)
+        vFilterBoxLayout.addWidget(self.tabWidget)
+
+        hBboxLayout.addLayout(vFilterBoxLayout)
         hBboxLayout.addWidget(self.logAnalyticsEdit)
+        # 按比例分配 5:3
+        hBboxLayout.setStretchFactor(vFilterBoxLayout, 5)
+        hBboxLayout.setStretchFactor(self.logAnalyticsEdit, 3)
         vBoxLayout.addLayout(hBboxLayout)
 
         self.centralwidget.setLayout(vBoxLayout)
