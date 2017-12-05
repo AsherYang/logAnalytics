@@ -67,8 +67,6 @@ class Ui_MainWidget(object):
         # vBoxLayout 和 hBoxLayout 的选择依据是：根据2个控件的排列方向，上下排(vBoxLayout)还是左右排(hBoxLayout)
         vBoxLayout = QtGui.QVBoxLayout()
         hBboxLayout = QtGui.QHBoxLayout()
-        vFilterBoxLayout = QtGui.QVBoxLayout()
-        hFilterBoxLayout = QtGui.QHBoxLayout()
 
         # 需要设置添加到 self.centralwidget
         self.logAnalyticsEdit = QtGui.QTextEdit()
@@ -78,18 +76,39 @@ class Ui_MainWidget(object):
         self.filterLineEdit.setFont(self.getFont('Monospace'))
         self.filterBtn = QtGui.QPushButton()
         self.filterBtn.setText(u'Filter')
-        hFilterBoxLayout.addWidget(self.filterLineEdit)
-        hFilterBoxLayout.addWidget(self.filterBtn)
+        self.saveKeyWordBtn = QtGui.QPushButton()
+        self.saveKeyWordBtn.setText(u'Save')
+        self.LoadKeyWorkBtn = QtGui.QPushButton()
+        self.LoadKeyWorkBtn.setText(u'Load')
+        self.filterBtn.setFixedWidth(60)
+        self.saveKeyWordBtn.setFixedWidth(60)
+        self.LoadKeyWorkBtn.setFixedWidth(60)
+        self.filterBtn.setFont(self.getFont('Consolas'))
+        self.saveKeyWordBtn.setFont(self.getFont('Consolas'))
+        self.LoadKeyWorkBtn.setFont(self.getFont('Consolas'))
+
         self.tabWidget = QtGui.QTableWidget()
 
-        vFilterBoxLayout.addLayout(hFilterBoxLayout)
-        vFilterBoxLayout.addWidget(self.tabWidget)
+        self.filterLineEdit.setMaximumHeight(28)
+        self.filterLineEdit.setMinimumHeight(28)
+        hFilterSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        hFilterSplitter.addWidget(self.filterLineEdit)
+        hFilterSplitter.addWidget(self.filterBtn)
+        hFilterSplitter.addWidget(self.saveKeyWordBtn)
+        hFilterSplitter.addWidget(self.LoadKeyWorkBtn)
 
-        hBboxLayout.addLayout(vFilterBoxLayout)
-        hBboxLayout.addWidget(self.logAnalyticsEdit)
+        vSplitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        vSplitter.addWidget(hFilterSplitter)
+        vSplitter.addWidget(self.tabWidget)
+
+        hSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        hSplitter.addWidget(vSplitter)
+        hSplitter.addWidget(self.logAnalyticsEdit)
         # 按比例分配 5:3
-        hBboxLayout.setStretchFactor(vFilterBoxLayout, 5)
-        hBboxLayout.setStretchFactor(self.logAnalyticsEdit, 3)
+        hSplitter.setStretchFactor(0, 5)
+        hSplitter.setStretchFactor(1, 3)
+
+        hBboxLayout.addWidget(hSplitter)
         vBoxLayout.addLayout(hBboxLayout)
 
         self.centralwidget.setLayout(vBoxLayout)
