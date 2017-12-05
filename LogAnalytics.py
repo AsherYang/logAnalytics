@@ -60,12 +60,25 @@ class Ui_MainWidget(object):
         setting = self.menubar.addMenu('&Setting')
         tools = self.menubar.addMenu('&Tools')
 
-        # 需要设置添加到 self.centralwidget
-        self.logAnalyticsEdit = QtGui.QTextEdit(self.centralwidget)
-        self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
-
+        # 添加到 mainWindow
         mainWindow.setMenuBar(self.menubar)
         mainWindow.setStatusBar(self.statusBar)
+
+        vBoxLayout = QtGui.QVBoxLayout()
+        hBboxLayout = QtGui.QHBoxLayout()
+
+        # 需要设置添加到 self.centralwidget
+        self.logAnalyticsEdit = QtGui.QTextEdit()
+        self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
+
+        self.tabWidget = QtGui.QTableWidget()
+
+        hBboxLayout.addWidget(self.tabWidget)
+        hBboxLayout.addWidget(self.logAnalyticsEdit)
+        vBoxLayout.addLayout(hBboxLayout)
+
+        self.centralwidget.setLayout(vBoxLayout)
+
         mainWindow.setCentralWidget(self.centralwidget)
 
     def getFont(self, fontStr):
@@ -94,7 +107,17 @@ class Ui_MainWidget(object):
         self.logAnalyticsEdit.setText(_translate('', data, None))
 
     def saveLogFile(self):
-        fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './'))
+        text = str(self.logAnalyticsEdit.toPlainText())
+        logTxtName = ''
+        if text:
+            logTxtName = text.split('\n')[0]
+            if logTxtName.find('#') >= 0:
+                # 字符串切片
+                logTxtName = logTxtName[(logTxtName.find('#') + 1): ] + '.md'
+            else:
+                logTxtName += '.txt'
+        # print logTxtName
+        fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + logTxtName))
         if not fileName:
             return
 
@@ -104,7 +127,6 @@ class Ui_MainWidget(object):
             QtGui.QMessageBox.information(None, "Unable to open file",
                                           "There was an error opening \"%s\"" % fileName)
             return
-        text = str(self.logAnalyticsEdit.toPlainText())
         # pickle.dump(text, out_file)
         out_file.write(text)
         out_file.close()
