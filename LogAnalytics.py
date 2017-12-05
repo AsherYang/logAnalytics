@@ -8,6 +8,7 @@
 
 from PyQt4 import QtCore, QtGui
 import sys
+import StringUtil
 # import pickle
 
 reload(sys)
@@ -40,21 +41,17 @@ class Ui_MainWidget(object):
         self.statusBar = QtGui.QStatusBar(mainWindow)
         self.menubar = QtGui.QMenuBar(mainWindow)
         file = self.menubar.addMenu(' &File')
-        openFile1Action = QtGui.QAction('Open file 1', mainWindow)
-        openFile1Action.setStatusTip(_fromUtf8('选择文件1'))
-        openFile1Action.connect(openFile1Action, QtCore.SIGNAL('triggered()'), self.openFile1)
-
-        openFile2Action = QtGui.QAction('Open file 2', mainWindow)
-        openFile2Action.setStatusTip(_fromUtf8('选择文件2'))
-        openFile2Action.connect(openFile2Action, QtCore.SIGNAL('triggered()'), self.openFile2)
+        openFileAction = QtGui.QAction('Open file', mainWindow)
+        openFileAction.setStatusTip(_fromUtf8('选择日志文件'))
+        openFileAction.setShortcut('Ctrl+O')
+        openFileAction.connect(openFileAction, QtCore.SIGNAL('triggered()'), self.openFile)
 
         saveLogFileAction = QtGui.QAction('Save file', mainWindow)
         saveLogFileAction.setStatusTip(_fromUtf8('保存日志分析文件'))
         saveLogFileAction.setShortcut('Ctrl+Alt+S')
         saveLogFileAction.connect(saveLogFileAction, QtCore.SIGNAL('triggered()'), self.saveLogFile)
 
-        file.addAction(openFile1Action)
-        file.addAction(openFile2Action)
+        file.addAction(openFileAction)
         file.addAction(saveLogFileAction)
 
         setting = self.menubar.addMenu('&Setting')
@@ -87,7 +84,8 @@ class Ui_MainWidget(object):
         self.saveKeyWordBtn.setFont(self.getFont('Consolas'))
         self.LoadKeyWorkBtn.setFont(self.getFont('Consolas'))
 
-        self.tabWidget = QtGui.QTableWidget()
+        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('currentChanged(int)'), self.tabChanged)
 
         self.filterLineEdit.setMaximumHeight(28)
         self.filterLineEdit.setMinimumHeight(28)
@@ -122,23 +120,17 @@ class Ui_MainWidget(object):
         font.setFixedPitch(True)
         return font
 
-    def openFile1(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file 1', './', 'log files(*.log *.md *.txt)'))
+    def openFile(self):
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
         if not fileName:
             return
         file = open(fileName)
         data = file.read()
         file.close()
-        self.logAnalyticsEdit.setText(_translate('', data, None))
-
-    def openFile2(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file 2', './', 'log files(*.log *.md *.txt)'))
-        if not fileName:
-            return
-        file = open(fileName)
-        data = file.read()
-        file.close()
-        self.logAnalyticsEdit.setText(_translate('', data, None))
+        loadTextEdit = QtGui.QTextEdit()
+        loadTextEdit.setFont(self.getFont('Monospace'))
+        loadTextEdit.setText(_translate('', data, None))
+        self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1): ])
 
     def saveLogFile(self):
         text = str(self.logAnalyticsEdit.toPlainText())
@@ -167,6 +159,10 @@ class Ui_MainWidget(object):
         out_file.close()
         # print text
         print fileName
+
+    def tabChanged(self, index):
+        self.tabWidget.setStatusTip(self.tabWidget.tabText(index))
+
 
 class LogMainWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
