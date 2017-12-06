@@ -6,9 +6,12 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
 import sys
+
+from PyQt4 import QtCore, QtGui
+
 import StringUtil
+
 # import pickle
 
 reload(sys)
@@ -46,12 +49,18 @@ class Ui_MainWidget(object):
         openFileAction.setShortcut('Ctrl+O')
         openFileAction.connect(openFileAction, QtCore.SIGNAL('triggered()'), self.openFile)
 
-        saveLogFileAction = QtGui.QAction('Save file', mainWindow)
+        saveLogFileAction = QtGui.QAction('Save Analytics', mainWindow)
         saveLogFileAction.setStatusTip(_fromUtf8('保存日志分析文件'))
         saveLogFileAction.setShortcut('Ctrl+Alt+S')
         saveLogFileAction.connect(saveLogFileAction, QtCore.SIGNAL('triggered()'), self.saveLogFile)
 
+        loadLogFileAction = QtGui.QAction('Load Analytics', mainWindow)
+        loadLogFileAction.setStatusTip(_fromUtf8('加载日志分析文件'))
+        loadLogFileAction.setShortcut('Ctrl+Alt+O')
+        loadLogFileAction.connect(loadLogFileAction, QtCore.SIGNAL('triggered()'), self.loadLogFile)
+
         file.addAction(openFileAction)
+        file.addAction(loadLogFileAction)
         file.addAction(saveLogFileAction)
 
         setting = self.menubar.addMenu('&Setting')
@@ -85,7 +94,10 @@ class Ui_MainWidget(object):
         self.LoadKeyWorkBtn.setFont(self.getFont('Consolas'))
 
         self.tabWidget = QtGui.QTabWidget()
-        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('currentChanged(int)'), self.tabChanged)
+        self.tabWidget.setTabsClosable(True)
+        self.tabWidget.setMovable(True)
+        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('tabCloseRequested(int)'), self.tabClose)
+        self.tabWidget.connect(mainWindow, QtCore.SIGNAL('closeCurrentTabSignal()'), self.currentTabCloseSlot)
 
         self.filterLineEdit.setMaximumHeight(28)
         self.filterLineEdit.setMinimumHeight(28)
@@ -145,14 +157,15 @@ class Ui_MainWidget(object):
         # print logTxtName
         logTxtName = _translate('', logTxtName, None)
         fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + logTxtName))
+        print fileName
         if not fileName:
-            return
+            fileName = 'logAnalytics.md'
+            fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + fileName))
 
         try:
             out_file = open(str(fileName), 'wb')
         except IOError:
-            QtGui.QMessageBox.information(None, "Unable to open file",
-                                          "There was an error opening \"%s\"" % fileName)
+            print u'未能保存Log分析文件'
             return
         # pickle.dump(text, out_file)
         out_file.write(text)
@@ -160,8 +173,23 @@ class Ui_MainWidget(object):
         # print text
         print fileName
 
-    def tabChanged(self, index):
-        self.tabWidget.setStatusTip(self.tabWidget.tabText(index))
+    def loadLogFile(self):
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
+        if not fileName:
+            return
+        file = open(fileName)
+        data = file.read()
+        file.close()
+        self.logAnalyticsEdit.setText(_translate('', data, None))
+
+    def currentTabCloseSlot(self):
+        tabIndex = self.tabWidget.currentIndex()
+        if tabIndex < 0:
+            return
+        self.tabClose(tabIndex)
+
+    def tabClose(self, index):
+        self.tabWidget.removeTab(index)
 
 
 class LogMainWindow(QtGui.QMainWindow):
@@ -171,6 +199,14 @@ class LogMainWindow(QtGui.QMainWindow):
         screen = QtGui.QDesktopWidget().screenGeometry()
         self.resize(screen.width() / 4 * 3, screen.height() / 4 * 3)
         self.setWindowTitle('LogAnalytics')
+
+    def keyPressEvent(self, event):
+        # 设置 "Ctrl+w" 快捷键，用于关闭 tab
+        if event.key() == QtCore.Qt.Key_W and event.modifiers() == QtCore.Qt.ControlModifier:
+            self.emit(QtCore.SIGNAL('closeCurrentTabSignal()'))
+
+    def closeCurrentTabSignal(self):
+        return
 
 
 if __name__ == '__main__':
