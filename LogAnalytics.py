@@ -11,7 +11,7 @@ import sys
 from PyQt4 import QtCore, QtGui
 
 import StringUtil
-
+import StringIO
 # import pickle
 
 reload(sys)
@@ -36,6 +36,7 @@ except AttributeError:
 class Ui_MainWidget(object):
     def setupUi(self, mainWindow):
         self.mainwindow = mainWindow
+        self.originalData = None
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
@@ -79,7 +80,7 @@ class Ui_MainWidget(object):
         self.logAnalyticsEdit.setFont(self.getFont('Monospace'))
 
         self.filterLineEdit = QtGui.QLineEdit()
-        self.filterLineEdit.setFont(self.getFont('Monospace'))
+        self.filterLineEdit.setFont(self.getFont('Consolas'))
         self.filterBtn = QtGui.QPushButton()
         self.filterBtn.setText(u'Filter')
         self.saveKeyWordBtn = QtGui.QPushButton()
@@ -89,9 +90,17 @@ class Ui_MainWidget(object):
         self.filterBtn.setFixedWidth(60)
         self.saveKeyWordBtn.setFixedWidth(60)
         self.LoadKeyWorkBtn.setFixedWidth(60)
+
         self.filterBtn.setFont(self.getFont('Consolas'))
         self.saveKeyWordBtn.setFont(self.getFont('Consolas'))
         self.LoadKeyWorkBtn.setFont(self.getFont('Consolas'))
+
+        self.filterBtn.setStatusTip(u'请输入过滤字符，多个字符间以 "|" 分割, (Ctrl+F)')
+        self.filterBtn.setShortcut('Ctrl+F')
+
+        self.filterBtn.connect(self.filterBtn, QtCore.SIGNAL('clicked()'), self.filter)
+        self.saveKeyWordBtn.connect(self.saveKeyWordBtn, QtCore.SIGNAL('clicked()'), self.saveKeyWord)
+        self.LoadKeyWorkBtn.connect(self.LoadKeyWorkBtn, QtCore.SIGNAL('clicked()'), self.loadKeyWord)
 
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabsClosable(True)
@@ -142,6 +151,7 @@ class Ui_MainWidget(object):
         loadTextEdit = QtGui.QTextEdit()
         loadTextEdit.setFont(self.getFont('Monospace'))
         loadTextEdit.setText(_translate('', data, None))
+        self.originalData = data
         self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1): ])
 
     def saveLogFile(self):
@@ -190,6 +200,38 @@ class Ui_MainWidget(object):
 
     def tabClose(self, index):
         self.tabWidget.removeTab(index)
+
+    def filter(self):
+        if not self.originalData:
+            return
+        if not self.filterLineEdit.text():
+            self.tabWidget.currentWidget().setText(_translate('', self.originalData, None))
+            return
+        filterList = str(self.filterLineEdit.text()).split('|')
+        currentTxt = StringIO.StringIO(self.originalData)
+        filterTxt = ''
+        # print currentTxt.readline()
+        while True:
+            textLine = str(_translate('', currentTxt.readline(), None))
+            if textLine == '':
+                print 'read over. '
+                break
+            for filterWord in filterList:
+                if not filterWord.strip():
+                    continue
+                keywordIndex = textLine.find(filterWord.strip())
+                if keywordIndex != -1:
+                    # print keywordIndex
+                    filterTxt += textLine
+        # print filterTxt
+        self.tabWidget.currentWidget().setText(_translate('', filterTxt, None))
+
+    def saveKeyWord(self):
+        filterList = str(self.filterLineEdit.text()).split('|')
+        return
+
+    def loadKeyWord(self):
+        return
 
 
 class LogMainWindow(QtGui.QMainWindow):
