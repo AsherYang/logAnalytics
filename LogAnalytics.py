@@ -37,6 +37,7 @@ class Ui_MainWidget(object):
     def setupUi(self, mainWindow):
         self.mainwindow = mainWindow
         self.originalData = None
+        self.filterConfigFilePath = '.\\filter_config'
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
@@ -97,6 +98,8 @@ class Ui_MainWidget(object):
 
         self.filterBtn.setStatusTip(u'请输入过滤字符，多个字符间以 "|" 分割, (Ctrl+F)')
         self.filterBtn.setShortcut('Ctrl+F')
+        self.saveKeyWordBtn.setStatusTip(u'保存过滤条件, (Ctrl+B)')
+        self.saveKeyWordBtn.setShortcut('Ctrl+B')
 
         self.filterBtn.connect(self.filterBtn, QtCore.SIGNAL('clicked()'), self.filter)
         self.saveKeyWordBtn.connect(self.saveKeyWordBtn, QtCore.SIGNAL('clicked()'), self.saveKeyWord)
@@ -227,8 +230,22 @@ class Ui_MainWidget(object):
         self.tabWidget.currentWidget().setText(_translate('', filterTxt, None))
 
     def saveKeyWord(self):
-        filterList = str(self.filterLineEdit.text()).split('|')
-        return
+        filterStr = self.filterLineEdit.text()
+        if not filterStr:
+            return
+        filterFile = QtCore.QFile(self.filterConfigFilePath)
+        if not filterFile.open(QtCore.QFile.ReadWrite):
+            filterFile.close()
+            return
+        oldTxt = QtCore.QTextStream(filterFile)
+        oldTxt.setCodec('UTF-8')
+        print oldTxt.readAll()
+        if oldTxt.readAll():
+            oldTxt << '\n'
+        # << 写入操作
+        oldTxt << _translate('', filterStr, None) << '\n'
+        oldTxt.flush()
+        filterFile.close()
 
     def loadKeyWord(self):
         return
