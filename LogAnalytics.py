@@ -12,6 +12,7 @@ from PyQt4 import QtCore, QtGui
 
 import StringUtil
 import StringIO
+import os
 # import pickle
 
 reload(sys)
@@ -32,6 +33,16 @@ try:
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class Ui_MainWidget(object):
     def setupUi(self, mainWindow):
@@ -283,7 +294,7 @@ class Ui_MainWidget(object):
             listItem = QtGui.QListWidgetItem()
             customListItemWidget = CustomFilterItemWidget()
             customListItemWidget.setItemText(_translate('', filterStr, None))
-            customListItemWidget.setItemIcon('img/delete.png')
+            customListItemWidget.setItemIcon(resource_path('img/delete.png'))
             customListItemWidget.setItemIndex(listItemIndex)
             listItem.setSizeHint(customListItemWidget.sizeHint())
             listItemIndex += 1
