@@ -351,7 +351,6 @@ class Ui_MainWidget(object):
 
         filterFile.resize(0)
         filterStr = '#@$'.join(allFilterList)
-        print 'ss = %s ' %filterStr
         if not filterStr:
             return
         oldTxt << _translate('', filterStr, None)
