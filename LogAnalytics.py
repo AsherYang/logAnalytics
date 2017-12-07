@@ -100,6 +100,8 @@ class Ui_MainWidget(object):
         self.filterBtn.setShortcut('Ctrl+F')
         self.saveKeyWordBtn.setStatusTip(u'保存过滤条件, (Ctrl+B)')
         self.saveKeyWordBtn.setShortcut('Ctrl+B')
+        self.LoadKeyWorkBtn.setStatusTip(u'加载过滤条件,(Ctrl+L)')
+        self.LoadKeyWorkBtn.setShortcut('Ctrl+L')
 
         self.filterBtn.connect(self.filterBtn, QtCore.SIGNAL('clicked()'), self.filter)
         self.saveKeyWordBtn.connect(self.saveKeyWordBtn, QtCore.SIGNAL('clicked()'), self.saveKeyWord)
@@ -239,16 +241,60 @@ class Ui_MainWidget(object):
             return
         oldTxt = QtCore.QTextStream(filterFile)
         oldTxt.setCodec('UTF-8')
-        print oldTxt.readAll()
-        if oldTxt.readAll():
-            oldTxt << '\n'
+        # 注意readAll() 读取一次之后，就不能再重复读了，后面重复读取不到数据
+        allFilter = str(oldTxt.readAll())
+        if allFilter:
+            allFilterList = allFilter.split('#@$')
+            for oneFilter in allFilterList:
+                if oneFilter == str(filterStr):
+                    return
+            # 加入分隔符
+            oldTxt << '#@$'
         # << 写入操作
-        oldTxt << _translate('', filterStr, None) << '\n'
+        oldTxt << _translate('', filterStr, None)
         oldTxt.flush()
         filterFile.close()
 
     def loadKeyWord(self):
-        return
+        filterFile = QtCore.QFile(self.filterConfigFilePath)
+        if not filterFile.open(QtCore.QFile.ReadOnly):
+            filterFile.close()
+            return
+        oldTxt = QtCore.QTextStream(filterFile)
+        oldTxt.setCodec('UTF-8')
+        allFilter = str(oldTxt.readAll())
+        allFilterList = allFilter.split('#@$')
+        self.showFilterDialog(allFilterList)
+
+    def showFilterDialog(self, filterList):
+        filterDialog = QtGui.QDialog()
+        filterDialog.setWindowTitle(u'过滤条件')
+        filterDialog.resize(240, 200)
+        filterLayout = QtGui.QGridLayout()
+        filterListWidget = QtGui.QListWidget()
+        for filterStr in filterList:
+            listItem = QtGui.QListWidgetItem(_translate('', filterStr, None))
+            filterListWidget.addItem(listItem)
+        filterLayout.addWidget(filterListWidget)
+        filterDialog.setLayout(filterLayout)
+        # itemDoubleClicked signal
+        filterListWidget.connect(filterListWidget, QtCore.SIGNAL('itemDoubleClicked(QListWidgetItem *)'), self.filterListItemClick)
+        filterDialog.exec_()
+
+    def filterListItemClick(self, listWidgetItem):
+        selectTxt = str(listWidgetItem.text()).strip()
+        filterTxt = str(self.filterLineEdit.text()).strip()
+        if not filterTxt:
+            self.filterLineEdit.setText(_translate('', selectTxt, None))
+        else:
+            filterList = filterTxt.split('|')
+            for onFilter in filterList:
+                onFilter = onFilter.strip()
+                if onFilter == selectTxt:
+                    return
+            filterList.append(selectTxt)
+            filterStr = "|".join(filterList)
+            self.filterLineEdit.setText(_translate('', filterStr, None))
 
 
 class LogMainWindow(QtGui.QMainWindow):
