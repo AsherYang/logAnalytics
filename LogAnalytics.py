@@ -267,22 +267,43 @@ class Ui_MainWidget(object):
         self.showFilterDialog(allFilterList)
 
     def showFilterDialog(self, filterList):
+        if not filterList:
+            return
         filterDialog = QtGui.QDialog()
         filterDialog.setWindowTitle(u'过滤条件')
-        filterDialog.resize(240, 200)
+        filterDialog.resize(220, 350)
         filterLayout = QtGui.QGridLayout()
-        filterListWidget = QtGui.QListWidget()
+        self.filterListWidget = QtGui.QListWidget()
+        listItemIndex = 0
         for filterStr in filterList:
-            listItem = QtGui.QListWidgetItem(_translate('', filterStr, None))
-            filterListWidget.addItem(listItem)
-        filterLayout.addWidget(filterListWidget)
+            # listItem = QtGui.QListWidgetItem(_translate('', filterStr, None))
+            # listItem.setIcon(QtGui.QIcon('img/delete.png'))
+            if not filterStr:
+                continue
+            listItem = QtGui.QListWidgetItem()
+            customListItemWidget = CustomFilterItemWidget()
+            customListItemWidget.setItemText(_translate('', filterStr, None))
+            customListItemWidget.setItemIcon('img/delete.png')
+            customListItemWidget.setItemIndex(listItemIndex)
+            listItem.setSizeHint(customListItemWidget.sizeHint())
+            listItemIndex += 1
+            customListItemWidget.connect(customListItemWidget, QtCore.SIGNAL('deleteItem(int)'), self.filterItemDeleteClick)
+
+            self.filterListWidget.addItem(listItem)
+            self.filterListWidget.setItemWidget(listItem, customListItemWidget)
+
+        filterLayout.addWidget(self.filterListWidget)
         filterDialog.setLayout(filterLayout)
         # itemDoubleClicked signal
-        filterListWidget.connect(filterListWidget, QtCore.SIGNAL('itemDoubleClicked(QListWidgetItem *)'), self.filterListItemClick)
+        self.filterListWidget.connect(self.filterListWidget, QtCore.SIGNAL('itemDoubleClicked(QListWidgetItem *)'),
+                                      self.filterItemDoubleClick)
         filterDialog.exec_()
 
-    def filterListItemClick(self, listWidgetItem):
-        selectTxt = str(listWidgetItem.text()).strip()
+    def filterItemDoubleClick(self, listWidgetItem):
+        # 获取到自定义的 widget, 先获取 QListWidget 在获取他的 itemWidget
+        customWidget = self.filterListWidget.itemWidget(listWidgetItem)
+        # print customWidget.getItemText()
+        selectTxt = str(customWidget.getItemText()).strip()
         filterTxt = str(self.filterLineEdit.text()).strip()
         if not filterTxt:
             self.filterLineEdit.setText(_translate('', selectTxt, None))
@@ -295,6 +316,87 @@ class Ui_MainWidget(object):
             filterList.append(selectTxt)
             filterStr = "|".join(filterList)
             self.filterLineEdit.setText(_translate('', filterStr, None))
+
+    def filterItemDeleteClick(self, index):
+        filterCount = self.filterListWidget.count()
+        if index > filterCount:
+            return
+        customWidget = self.filterListWidget.itemWidget(self.filterListWidget.item(index))
+        self.deleteFilterOnFile(customWidget.getItemText())
+        self.filterListWidget.takeItem(index)
+        # 修正index
+        for x in range(0, filterCount):
+            x = int(x)
+            if x >= index:
+                listItem = self.filterListWidget.item(x)
+                customWidget = self.filterListWidget.itemWidget(listItem)
+                if customWidget:
+                    itemIndex = int(customWidget.getItemIndex()) - 1
+                    customWidget.setItemIndex(itemIndex)
+
+    def deleteFilterOnFile(self, text):
+        if not text:
+            return
+        filterFile = QtCore.QFile(self.filterConfigFilePath)
+        if not filterFile.open(QtCore.QFile.ReadWrite):
+            filterFile.close()
+            return
+        oldTxt = QtCore.QTextStream(filterFile)
+        oldTxt.setCodec('UTF-8')
+        allFilter = str(oldTxt.readAll())
+        allFilterList = allFilter.split('#@$')
+        for oneFilter in allFilterList:
+            if oneFilter == str(text):
+                allFilterList.remove(oneFilter)
+
+        filterFile.resize(0)
+        filterStr = '#@$'.join(allFilterList)
+        print 'ss = %s ' %filterStr
+        if not filterStr:
+            return
+        oldTxt << _translate('', filterStr, None)
+        oldTxt.flush()
+        filterFile.close()
+
+
+class CustomFilterItemWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self)
+        hItemBoxLayout = QtGui.QHBoxLayout()
+        self.itemText = QtGui.QLabel()
+        self.itemIconBtn = QtGui.QPushButton()
+        self.itemIndex = 0
+        hItemBoxLayout.addWidget(self.itemText)
+        hItemBoxLayout.addWidget(self.itemIconBtn)
+
+        self.itemIconBtn.connect(self.itemIconBtn, QtCore.SIGNAL('clicked()'), self.iconClick)
+
+        self.setLayout(hItemBoxLayout)
+
+    def setItemText(self, text):
+        self.itemText.setText(text)
+
+    def getItemText(self):
+        return self.itemText.text()
+
+    def setItemIndex(self, index):
+        self.itemIndex = index
+
+    def getItemIndex(self):
+        return self.itemIndex
+
+    def setItemIcon(self, imgPath):
+        iconPixmap = QtGui.QPixmap(imgPath)
+        self.itemIconBtn.setIcon(QtGui.QIcon(iconPixmap))
+        # setFixedSize
+        self.itemIconBtn.setIconSize(iconPixmap.rect().size())
+        self.itemIconBtn.setFixedSize(iconPixmap.rect().size())
+
+    def iconClick(self):
+        self.emit(QtCore.SIGNAL('deleteItem(int)'), self.getItemIndex())
+
+    def deleteItem(self, itemIndex):
+        return
 
 
 class LogMainWindow(QtGui.QMainWindow):
