@@ -13,7 +13,6 @@ from PyQt4 import QtCore, QtGui
 import StringUtil
 import StringIO
 import os
-# import pickle
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -62,19 +61,19 @@ class Ui_MainWidget(object):
         openFileAction.setShortcut('Ctrl+O')
         openFileAction.connect(openFileAction, QtCore.SIGNAL('triggered()'), self.openFile)
 
-        saveLogFileAction = QtGui.QAction('Save Analytics', mainWindow)
-        saveLogFileAction.setStatusTip(_fromUtf8('保存日志分析文件'))
-        saveLogFileAction.setShortcut('Ctrl+Alt+S')
-        saveLogFileAction.connect(saveLogFileAction, QtCore.SIGNAL('triggered()'), self.saveLogFile)
+        saveLogAnalyticsAction = QtGui.QAction('Save Analytics', mainWindow)
+        saveLogAnalyticsAction.setStatusTip(_fromUtf8('保存日志分析文件'))
+        saveLogAnalyticsAction.setShortcut('Ctrl+Alt+S')
+        saveLogAnalyticsAction.connect(saveLogAnalyticsAction, QtCore.SIGNAL('triggered()'), self.saveLogAnalyticsFile)
 
-        loadLogFileAction = QtGui.QAction('Load Analytics', mainWindow)
-        loadLogFileAction.setStatusTip(_fromUtf8('加载日志分析文件'))
-        loadLogFileAction.setShortcut('Ctrl+Alt+O')
-        loadLogFileAction.connect(loadLogFileAction, QtCore.SIGNAL('triggered()'), self.loadLogFile)
+        loadLogAnalyticsAction = QtGui.QAction('Load Analytics', mainWindow)
+        loadLogAnalyticsAction.setStatusTip(_fromUtf8('加载日志分析文件'))
+        loadLogAnalyticsAction.setShortcut('Ctrl+Alt+O')
+        loadLogAnalyticsAction.connect(loadLogAnalyticsAction, QtCore.SIGNAL('triggered()'), self.loadLogAnalyticsFile)
 
         file.addAction(openFileAction)
-        file.addAction(loadLogFileAction)
-        file.addAction(saveLogFileAction)
+        file.addAction(loadLogAnalyticsAction)
+        file.addAction(saveLogAnalyticsAction)
 
         setting = self.menubar.addMenu('&Setting')
         tools = self.menubar.addMenu('&Tools')
@@ -161,8 +160,12 @@ class Ui_MainWidget(object):
         fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
         if not fileName:
             return
-        file = open(fileName)
-        data = file.read()
+        file = QtCore.QFile(fileName)
+        if not file.open(QtCore.QIODevice.ReadOnly):
+            return
+        stream = QtCore.QTextStream(file)
+        stream.setCodec('UTF-8')
+        data = stream.readAll()
         file.close()
         loadTextEdit = QtGui.QTextEdit()
         loadTextEdit.setFont(self.getFont('Monospace'))
@@ -170,11 +173,15 @@ class Ui_MainWidget(object):
         self.originalData = data
         self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1): ])
 
-    def saveLogFile(self):
-        text = str(self.logAnalyticsEdit.toPlainText())
+    def saveLogAnalyticsFile(self):
+        logEditTxt = _translate('', self.logAnalyticsEdit.toPlainText(), None)
+        logTxtStream = QtCore.QTextStream(logEditTxt)
+        logTxtStream.setCodec('UTF-8')
+        firstLine = logTxtStream.readLine()
         logTxtName = ''
-        if text:
-            logTxtName = text.split('\n')[0]
+        if firstLine:
+            logTxtName = str(firstLine)
+            # logTxtName = firstTxt.split('\n')[0]
             if logTxtName.find('#') >= 0:
                 # 字符串切片
                 logTxtName = logTxtName[(logTxtName.find('#') + 1): ] + '.md'
@@ -183,28 +190,32 @@ class Ui_MainWidget(object):
         # print logTxtName
         logTxtName = _translate('', logTxtName, None)
         fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + logTxtName))
-        print fileName
         if not fileName:
-            fileName = 'logAnalytics.md'
-            fileName = unicode(QtGui.QFileDialog.getSaveFileName(None, 'save File', './' + fileName))
+            return
 
         try:
-            out_file = open(str(fileName), 'wb')
+            out_file = QtCore.QFile(_translate('', fileName, None))
+            if not out_file.open(QtCore.QIODevice.ReadWrite):
+                return
+            stream = QtCore.QTextStream(out_file)
+            stream.setCodec('UTF-8')
+            stream << _translate('', logEditTxt, None)
+            stream.flush()
+            out_file.close()
         except IOError:
             print u'未能保存Log分析文件'
             return
-        # pickle.dump(text, out_file)
-        out_file.write(text)
-        out_file.close()
-        # print text
-        print fileName
 
-    def loadLogFile(self):
+    def loadLogAnalyticsFile(self):
         fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
         if not fileName:
             return
-        file = open(fileName)
-        data = file.read()
+        file = QtCore.QFile(fileName)
+        if not file.open(QtCore.QIODevice.ReadOnly):
+            return
+        stream = QtCore.QTextStream(file)
+        stream.setCodec('UTF-8')
+        data = stream.readAll()
         file.close()
         self.logAnalyticsEdit.setText(_translate('', data, None))
 
