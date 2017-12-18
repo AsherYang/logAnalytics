@@ -6,13 +6,13 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+import StringIO
+import os
 import sys
 
 from PyQt4 import QtCore, QtGui
 
 import StringUtil
-import StringIO
-import os
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -27,11 +27,14 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -42,6 +45,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 class Ui_MainWidget(object):
     def setupUi(self, mainWindow):
@@ -171,7 +175,7 @@ class Ui_MainWidget(object):
         loadTextEdit.setFont(self.getFont('Monospace'))
         loadTextEdit.setText(_translate('', data, None))
         self.originalData = data
-        self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1): ])
+        self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1):])
 
     def saveLogAnalyticsFile(self):
         logEditTxt = _translate('', self.logAnalyticsEdit.toPlainText(), None)
@@ -184,7 +188,7 @@ class Ui_MainWidget(object):
             # logTxtName = firstTxt.split('\n')[0]
             if logTxtName.find('#') >= 0:
                 # 字符串切片
-                logTxtName = logTxtName[(logTxtName.find('#') + 1): ] + '.md'
+                logTxtName = logTxtName[(logTxtName.find('#') + 1):] + '.md'
             else:
                 logTxtName += '.txt'
         # print logTxtName
@@ -309,7 +313,8 @@ class Ui_MainWidget(object):
             customListItemWidget.setItemIndex(listItemIndex)
             listItem.setSizeHint(customListItemWidget.sizeHint())
             listItemIndex += 1
-            customListItemWidget.connect(customListItemWidget, QtCore.SIGNAL('deleteItem(int)'), self.filterItemDeleteClick)
+            customListItemWidget.connect(customListItemWidget, QtCore.SIGNAL('deleteItem(int)'),
+                                         self.filterItemDeleteClick)
 
             self.filterListWidget.addItem(listItem)
             self.filterListWidget.setItemWidget(listItem, customListItemWidget)
