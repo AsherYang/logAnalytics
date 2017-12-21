@@ -13,6 +13,7 @@ import sys
 from PyQt4 import QtCore, QtGui
 
 import StringUtil
+import SupportFiles
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -126,6 +127,7 @@ class Ui_MainWidget(object):
         self.tabWidget.setMovable(True)
         self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('tabCloseRequested(int)'), self.tabClose)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('closeCurrentTabSignal()'), self.currentTabCloseSlot)
+        self.tabWidget.connect(mainWindow, QtCore.SIGNAL('dropOpenFileSignal(QString)'), self.setLogTxt)
 
         self.filterLineEdit.setMaximumHeight(28)
         self.filterLineEdit.setMinimumHeight(28)
@@ -160,11 +162,18 @@ class Ui_MainWidget(object):
         font.setFixedPitch(True)
         return font
 
+    # 打开文件，对应 Ctrl+O
     def openFile(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
-        if not fileName:
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
+        if not filePath:
             return
-        file = QtCore.QFile(fileName)
+        self.setLogTxt(filePath)
+
+    # 加载LOG 到显示区，同时将current tab name 设置为当前文件名
+    def setLogTxt(self, filePath):
+        if not filePath:
+            return
+        file = QtCore.QFile(filePath)
         if not file.open(QtCore.QIODevice.ReadOnly):
             return
         stream = QtCore.QTextStream(file)
@@ -175,7 +184,10 @@ class Ui_MainWidget(object):
         loadTextEdit.setFont(self.getFont('Monospace'))
         loadTextEdit.setText(_translate('', data, None))
         self.originalData = data
-        self.tabWidget.addTab(loadTextEdit, fileName[(StringUtil.findLast(fileName, '/') + 1):])
+        filePath = str(_translate('', filePath, None))
+        fileName = filePath[(StringUtil.findLast(filePath, '/') + 1):]
+        # print 'fileName= %s' %fileName
+        self.tabWidget.addTab(loadTextEdit, fileName)
 
     def saveLogAnalyticsFile(self):
         logEditTxt = _translate('', self.logAnalyticsEdit.toPlainText(), None)
@@ -211,7 +223,15 @@ class Ui_MainWidget(object):
             return
 
     def loadLogAnalyticsFile(self):
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
+        supportFiles = SupportFiles.files()
+        if not supportFiles:
+            print "not support one file !"
+            return
+        supportFileStr = ''
+        for file in supportFiles:
+            supportFileStr += "*." + file + " "
+        supportFileStr = supportFileStr.strip()
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(' + supportFileStr +')'))
         if not fileName:
             return
         file = QtCore.QFile(fileName)
@@ -385,6 +405,7 @@ class Ui_MainWidget(object):
         filterFile.close()
 
 
+# Load filter item
 class CustomFilterItemWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self)
@@ -432,15 +453,45 @@ class LogMainWindow(QtGui.QMainWindow):
         screen = QtGui.QDesktopWidget().screenGeometry()
         self.resize(screen.width() / 4 * 3, screen.height() / 4 * 3)
         self.setWindowTitle('LogAnalytics')
+        self.setAcceptDrops(True)
 
     def keyPressEvent(self, event):
         # 设置 "Ctrl+w" 快捷键，用于关闭 tab
         if event.key() == QtCore.Qt.Key_W and event.modifiers() == QtCore.Qt.ControlModifier:
             self.emit(QtCore.SIGNAL('closeCurrentTabSignal()'))
 
+    def dragEnterEvent(self, event):
+        supportFiles = SupportFiles.files()
+        if not supportFiles:
+            print "not support one file !"
+            return
+        # http://www.iana.org/assignments/media-types/media-types.xhtml
+        if event.mimeData().hasUrls() and event.mimeData().hasFormat("text/uri-list"):
+            for url in event.mimeData().urls():
+                filePath = str(url.toLocalFile()).decode('utf-8')
+                fileExt = os.path.splitext(filePath)[1][1:].lower()
+                # print fileExt
+                if fileExt in supportFiles:
+                    event.acceptProposedAction()
+                else:
+                    print 'not accept this file!'
+        else:
+            print 'not accept this file too!'
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                filePath = str(url.toLocalFile()).decode('utf-8')
+                # print filePath
+                self.emit(QtCore.SIGNAL('dropOpenFileSignal(QString)'), filePath)
+
+        return
+
     def closeCurrentTabSignal(self):
         return
 
+    def dropOpenFileSignal(self, filePath):
+        return
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
