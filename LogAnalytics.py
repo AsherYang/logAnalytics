@@ -14,6 +14,9 @@ from PyQt4 import QtCore, QtGui
 
 import StringUtil
 import SupportFiles
+import WinCommandEnCoding
+import WinRightKeyReg
+from WinRightKeyReg import RegisterWinKey
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -49,7 +52,7 @@ def resource_path(relative_path):
 
 
 class Ui_MainWidget(object):
-    def setupUi(self, mainWindow):
+    def setupUi(self, mainWindow, argv=None):
         self.mainwindow = mainWindow
         self.originalData = None
         self.filterConfigFilePath = '.\\filter_config'
@@ -81,6 +84,11 @@ class Ui_MainWidget(object):
         file.addAction(saveLogAnalyticsAction)
 
         setting = self.menubar.addMenu('&Setting')
+        settingWinRightKeyAction = QtGui.QAction('set right key', mainWindow)
+        settingWinRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
+        settingWinRightKeyAction.connect(settingWinRightKeyAction, QtCore.SIGNAL('triggered()'), self.setWinRightKey)
+        setting.addAction(settingWinRightKeyAction)
+
         tools = self.menubar.addMenu('&Tools')
 
         # 添加到 mainWindow
@@ -153,6 +161,13 @@ class Ui_MainWidget(object):
 
         self.centralwidget.setLayout(vBoxLayout)
 
+        # 处理右键打开，或者直接拖文件到桌面图标启动。
+        # argv 参数大于1，说明有其他文件路径。第0位是当前应用程序，第1位则是我们需要处理的文件路径
+        # 注意这里，是需要处理sys.argv 的编码问题的，方法是使用 WinCommandEnCoding.py 处理
+        if len(argv) > 1:
+            filePath = argv[1]
+            self.setLogTxt(_translate('', filePath, None))
+
         mainWindow.setCentralWidget(self.centralwidget)
 
     def getFont(self, fontStr):
@@ -161,6 +176,12 @@ class Ui_MainWidget(object):
         font.setPointSize(10)
         font.setFixedPitch(True)
         return font
+
+    # 设置windows 右键打开方式, 加入windows 注册表
+    def setWinRightKey(self):
+        programPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), WinRightKeyReg.prog_name)
+        winRightKey = RegisterWinKey(programPath)
+        winRightKey.register()
 
     # 打开文件，对应 Ctrl+O
     def openFile(self):
@@ -173,6 +194,7 @@ class Ui_MainWidget(object):
     def setLogTxt(self, filePath):
         if not filePath:
             return
+        filePath = _translate('', filePath, None)
         file = QtCore.QFile(filePath)
         if not file.open(QtCore.QIODevice.ReadOnly):
             return
@@ -185,9 +207,13 @@ class Ui_MainWidget(object):
         loadTextEdit.setText(_translate('', data, None))
         self.originalData = data
         filePath = str(_translate('', filePath, None))
-        fileName = filePath[(StringUtil.findLast(filePath, '/') + 1):]
+        fileName = ''
+        if StringUtil.findLast(filePath, '\\') == -1:
+            fileName = filePath[(StringUtil.findLast(filePath, '/') + 1):]
+        else:
+            fileName = filePath[(StringUtil.findLast(filePath, '\\') + 1):]
         # print 'fileName= %s' %fileName
-        self.tabWidget.addTab(loadTextEdit, fileName)
+        self.tabWidget.addTab(loadTextEdit, _translate('', fileName, None))
 
     def saveLogAnalyticsFile(self):
         logEditTxt = _translate('', self.logAnalyticsEdit.toPlainText(), None)
@@ -231,7 +257,8 @@ class Ui_MainWidget(object):
         for file in supportFiles:
             supportFileStr += "*." + file + " "
         supportFileStr = supportFileStr.strip()
-        fileName = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(' + supportFileStr +')'))
+        fileName = unicode(
+            QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(' + supportFileStr + ')'))
         if not fileName:
             return
         file = QtCore.QFile(fileName)
@@ -478,6 +505,8 @@ class LogMainWindow(QtGui.QMainWindow):
         else:
             print 'not accept this file too!'
 
+    # 和 dragEnterEvent 结合使用，处理拖拽文件进窗口区域，进行打开。与右键和拖文件到桌面图标打开方式不同。
+    # 本方式是在窗口打开的前提下，直接拖文件到窗口上，这种方式打开。
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
@@ -493,10 +522,11 @@ class LogMainWindow(QtGui.QMainWindow):
     def dropOpenFileSignal(self, filePath):
         return
 
+
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     logMainWin = LogMainWindow()
     uiMainWidget = Ui_MainWidget()
-    uiMainWidget.setupUi(logMainWin)
+    uiMainWidget.setupUi(logMainWin, WinCommandEnCoding.getOsArgv())
     logMainWin.show()
     sys.exit(app.exec_())

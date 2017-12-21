@@ -16,25 +16,35 @@ import os
 
 from _winreg import KEY_ALL_ACCESS
 
-prog_name = u'LogAnalytics'
 # prog_path = r'D:\python_demo\qt5\logAnalytics\dist\LogAnalytics.exe'
-print os.path.realpath(__file__)
-print os.path.dirname(os.path.realpath(__file__))
+# print os.path.realpath(__file__)
+# print os.path.dirname(os.path.realpath(__file__))
+prog_name = 'LogAnalytics.exe'
 
-class registerKey():
+
+class RegisterWinKey:
     def __init__(self, programPath):
         self.prog_path = programPath
 
     def register(self):
         key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Classes\*\shell')
-        print key
+        # print key
 
         newKey = _winreg.CreateKeyEx(key, 'LogAnalytics', 0, KEY_ALL_ACCESS)
         subKey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Classes\*\shell\LogAnalytics')
-        newSubKey = _winreg.CreateKey(subKey, "command")
+        # newSubKey = _winreg.CreateKey(subKey, "command")
 
         # _winreg.SetValue(newSubKey, "(Default)", 1, '"' + prog_path + '"' + ' "%1"')
         _winreg.SetValue(subKey, 'command', _winreg.REG_SZ, '"' + self.prog_path + '"' + ' "%1"')
 
+        # value = _winreg.QueryValue(subKey, 'command').split('"')[1]
+        # value2 = _winreg.QueryInfoKey(subKey)
+
         _winreg.CloseKey(key)
         _winreg.CloseKey(subKey)
+
+
+if __name__ == "__main__":
+    programPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), prog_name)
+    regWinKey = RegisterWinKey(programPath)
+    regWinKey.register()
