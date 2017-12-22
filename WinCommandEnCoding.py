@@ -22,7 +22,7 @@ def getOsArgv():
     # On Python 3 or non windows environments, we just return the args
     #  as they are.
     if not PY2 or os.name != 'nt':
-        return sys.argv[1:]
+        return sys.argv
 
     from ctypes import WINFUNCTYPE, windll, POINTER, byref, c_int
     from ctypes.wintypes import LPWSTR, LPCWSTR

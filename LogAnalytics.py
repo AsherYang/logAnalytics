@@ -119,11 +119,11 @@ class Ui_MainWidget(object):
         self.saveKeyWordBtn.setFont(self.getFont('Consolas'))
         self.LoadKeyWorkBtn.setFont(self.getFont('Consolas'))
 
-        self.filterBtn.setStatusTip(u'请输入过滤字符，多个字符间以 "|" 分割, (Ctrl+F)')
+        self.filterBtn.setStatusTip(u'请输入过滤字符，多个字符间以 "|" 分割(Ctrl+F)')
         self.filterBtn.setShortcut('Ctrl+F')
-        self.saveKeyWordBtn.setStatusTip(u'保存过滤条件, (Ctrl+B)')
+        self.saveKeyWordBtn.setStatusTip(u'保存过滤条件(Ctrl+B)')
         self.saveKeyWordBtn.setShortcut('Ctrl+B')
-        self.LoadKeyWorkBtn.setStatusTip(u'加载过滤条件,(Ctrl+L)')
+        self.LoadKeyWorkBtn.setStatusTip(u'加载过滤条件(Ctrl+L)')
         self.LoadKeyWorkBtn.setShortcut('Ctrl+L')
 
         self.filterBtn.connect(self.filterBtn, QtCore.SIGNAL('clicked()'), self.filter)
@@ -133,6 +133,7 @@ class Ui_MainWidget(object):
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabsClosable(True)
         self.tabWidget.setMovable(True)
+        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('currentChanged(int)'), self.currentTabChanged)
         self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('tabCloseRequested(int)'), self.tabClose)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('closeCurrentTabSignal()'), self.currentTabCloseSlot)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('dropOpenFileSignal(QString)'), self.setLogTxt)
@@ -276,6 +277,13 @@ class Ui_MainWidget(object):
             return
         self.tabClose(tabIndex)
 
+    # 当前 tab 改变
+    def currentTabChanged(self, index):
+        data = self.tabWidget.currentWidget()
+        if data:
+            self.originalData = _translate('', data.toPlainText(), None)
+
+    # 当前 tab 关闭
     def tabClose(self, index):
         self.tabWidget.removeTab(index)
 
@@ -294,10 +302,12 @@ class Ui_MainWidget(object):
             if textLine == '':
                 print 'read over. '
                 break
+            textLineLower = textLine.lower()
             for filterWord in filterList:
                 if not filterWord.strip():
                     continue
-                keywordIndex = textLine.find(filterWord.strip())
+                filterWord = filterWord.lower()
+                keywordIndex = textLineLower.find(filterWord.strip())
                 if keywordIndex != -1:
                     # print keywordIndex
                     filterTxt += textLine
