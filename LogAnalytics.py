@@ -12,7 +12,7 @@ import sys
 
 from PyQt4 import QtCore, QtGui
 
-import StringUtil
+import FileUtil
 import SupportFiles
 import WinCommandEnCoding
 import WinRightKeyReg
@@ -167,7 +167,8 @@ class Ui_MainWidget(object):
         # 注意这里，是需要处理sys.argv 的编码问题的，方法是使用 WinCommandEnCoding.py 处理
         if len(argv) > 1:
             filePath = argv[1]
-            self.setLogTxt(_translate('', filePath, None))
+            if SupportFiles.hasSupportFile(filePath):
+                self.setLogTxt(_translate('', filePath, None))
 
         mainWindow.setCentralWidget(self.centralwidget)
 
@@ -208,11 +209,7 @@ class Ui_MainWidget(object):
         loadTextEdit.setText(_translate('', data, None))
         self.originalData = data
         filePath = str(_translate('', filePath, None))
-        fileName = ''
-        if StringUtil.findLast(filePath, '\\') == -1:
-            fileName = filePath[(StringUtil.findLast(filePath, '/') + 1):]
-        else:
-            fileName = filePath[(StringUtil.findLast(filePath, '\\') + 1):]
+        fileName = FileUtil.getFileName(filePath)
         # print 'fileName= %s' %fileName
         self.tabWidget.addTab(loadTextEdit, _translate('', fileName, None))
 
@@ -498,17 +495,11 @@ class LogMainWindow(QtGui.QMainWindow):
             self.emit(QtCore.SIGNAL('closeCurrentTabSignal()'))
 
     def dragEnterEvent(self, event):
-        supportFiles = SupportFiles.files()
-        if not supportFiles:
-            print "not support one file !"
-            return
         # http://www.iana.org/assignments/media-types/media-types.xhtml
         if event.mimeData().hasUrls() and event.mimeData().hasFormat("text/uri-list"):
             for url in event.mimeData().urls():
                 filePath = str(url.toLocalFile()).decode('utf-8')
-                fileExt = os.path.splitext(filePath)[1][1:].lower()
-                # print fileExt
-                if fileExt in supportFiles:
+                if SupportFiles.hasSupportFile(filePath):
                     event.acceptProposedAction()
                 else:
                     print 'not accept this file!'

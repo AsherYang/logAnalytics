@@ -12,7 +12,7 @@ TODO LIST:
    -[*] 搜索大小写的问题
    -[] filterBtn 拉伸BUG
    -[] 支持设置隐藏日志分析窗口
-   -[] 拖拽支持文件限定，过滤拖拽文件类型
+   -[*] 拖拽支持文件限定，过滤拖拽文件类型
    -[*] 清除Filter后，恢复原始数据的问题
 
 ![pic1](https://raw.githubusercontent.com/AsherYang/logAnalytics/master/screenshot/logAnalytics_1.png)
