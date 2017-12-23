@@ -54,7 +54,7 @@ def resource_path(relative_path):
 class Ui_MainWidget(object):
     def setupUi(self, mainWindow, argv=None):
         self.mainwindow = mainWindow
-        self.originalData = None
+        self.originalDataList = []
         self.filterConfigFilePath = '.\\filter_config'
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
@@ -133,7 +133,6 @@ class Ui_MainWidget(object):
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabsClosable(True)
         self.tabWidget.setMovable(True)
-        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('currentChanged(int)'), self.currentTabChanged)
         self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('tabCloseRequested(int)'), self.tabClose)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('closeCurrentTabSignal()'), self.currentTabCloseSlot)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('dropOpenFileSignal(QString)'), self.setLogTxt)
@@ -207,10 +206,11 @@ class Ui_MainWidget(object):
         loadTextEdit = QtGui.QTextEdit()
         loadTextEdit.setFont(self.getFont('Monospace'))
         loadTextEdit.setText(_translate('', data, None))
-        self.originalData = data
+        loadTextEdit.setLineWrapMode(QtGui.QTextEdit.NoWrap)
         filePath = str(_translate('', filePath, None))
         fileName = FileUtil.getFileName(filePath)
         # print 'fileName= %s' %fileName
+        self.originalDataList.append(data)
         self.tabWidget.addTab(loadTextEdit, _translate('', fileName, None))
 
     def saveLogAnalyticsFile(self):
@@ -274,24 +274,25 @@ class Ui_MainWidget(object):
             return
         self.tabClose(tabIndex)
 
-    # 当前 tab 改变
-    def currentTabChanged(self, index):
-        data = self.tabWidget.currentWidget()
-        if data:
-            self.originalData = _translate('', data.toPlainText(), None)
-
     # 当前 tab 关闭
     def tabClose(self, index):
         self.tabWidget.removeTab(index)
+        del self.originalDataList[index]
+
+    # 获取当前 Tab 的 OriginalData
+    def getCurrentTabOriginalData(self):
+        tabIndex = self.tabWidget.currentIndex()
+        return self.originalDataList[tabIndex]
 
     def filter(self):
-        if not self.originalData:
+        currentTabOriginalData = self.getCurrentTabOriginalData()
+        if not currentTabOriginalData:
             return
         if not self.filterLineEdit.text():
-            self.tabWidget.currentWidget().setText(_translate('', self.originalData, None))
+            self.tabWidget.currentWidget().setText(_translate('', currentTabOriginalData, None))
             return
         filterList = str(self.filterLineEdit.text()).split('|')
-        currentTxt = StringIO.StringIO(self.originalData)
+        currentTxt = StringIO.StringIO(currentTabOriginalData)
         filterTxt = ''
         # print currentTxt.readline()
         while True:
@@ -323,10 +324,11 @@ class Ui_MainWidget(object):
         oldTxt.setCodec('UTF-8')
         # 注意readAll() 读取一次之后，就不能再重复读了，后面重复读取不到数据
         allFilter = str(oldTxt.readAll())
+        filterStr = str(filterStr).lower()
         if allFilter:
             allFilterList = allFilter.split('#@$')
             for oneFilter in allFilterList:
-                if oneFilter == str(filterStr):
+                if oneFilter == filterStr:
                     return
             # 加入分隔符
             oldTxt << '#@$'
