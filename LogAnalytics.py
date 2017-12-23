@@ -92,16 +92,13 @@ class Ui_MainWidget(object):
         setting.addSeparator()
 
         # 设置文本换行
-        settingTextWrapMenu = setting.addMenu("&set text wrap")
-        settingTextWrapOnAction = QtGui.QAction('text wrap on', mainWindow)
-        settingTextWrapOnAction.setStatusTip(_fromUtf8('开启文本换行'))
-        settingTextWrapOnAction.connect(settingTextWrapOnAction, QtCore.SIGNAL('triggered()'), self.setTextWrapOn)
-        settingTextWrapMenu.addAction(settingTextWrapOnAction)
-
-        settingTextWrapOffAction = QtGui.QAction('text wrap off', mainWindow)
-        settingTextWrapOffAction.setStatusTip(_fromUtf8('关闭文本换行'))
-        settingTextWrapOffAction.connect(settingTextWrapOffAction, QtCore.SIGNAL('triggered()'), self.setTextWrapOff)
-        settingTextWrapMenu.addAction(settingTextWrapOffAction)
+        self.settingTextWrapAction = QtGui.QAction('set text wrap', mainWindow)
+        checkIconPixmap = QtGui.QPixmap(resource_path('img/check.png'))
+        self.settingTextWrapAction.setIcon(QtGui.QIcon(checkIconPixmap))
+        self.settingTextWrapAction.setStatusTip(_fromUtf8('自动换行'))
+        self.setTextWrapIconVisible()
+        self.settingTextWrapAction.connect(self.settingTextWrapAction, QtCore.SIGNAL('triggered()'), self.changeTextWrap)
+        setting.addAction(self.settingTextWrapAction)
 
         tools = self.menubar.addMenu('&Tools')
 
@@ -199,6 +196,16 @@ class Ui_MainWidget(object):
         winRightKey.register()
 
     # 设置文本换行
+    def changeTextWrap(self):
+        if QSettingsUtil.getTextWrap() == QtCore.QString.number(QSettingsUtil.textWrapOn):
+            self.settingTextWrapAction.setIconVisibleInMenu(True)
+            # textWrapOff 自动换行
+            self.setTextWrapOff()
+        else:
+            self.settingTextWrapAction.setIconVisibleInMenu(False)
+            # textWrapOn 不换行
+            self.setTextWrapOn()
+
     def setTextWrapOn(self):
         QSettingsUtil.setTextWrap(QSettingsUtil.textWrapOn)
         self.setShowTabTxtWrap()
@@ -207,6 +214,12 @@ class Ui_MainWidget(object):
     def setTextWrapOff(self):
         QSettingsUtil.setTextWrap(QSettingsUtil.textWrapOff)
         self.setShowTabTxtWrap()
+
+    def setTextWrapIconVisible(self):
+        if QSettingsUtil.getTextWrap() == QtCore.QString.number(QSettingsUtil.textWrapOn):
+            self.settingTextWrapAction.setIconVisibleInMenu(False)
+        else:
+            self.settingTextWrapAction.setIconVisibleInMenu(True)
 
     def setShowTabTxtWrap(self):
         tabCount = self.tabWidget.count()

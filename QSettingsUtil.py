@@ -18,7 +18,7 @@ textWrapKeyGroup = 'textWrapKeyGroup'
 textWrapKey = 'textWrap'
 # 0: 不换行， 默认值
 textWrapOn = 0
-# 1：换行
+# 1：换行(自动换行)
 textWrapOff = 1
 
 
