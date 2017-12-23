@@ -17,6 +17,7 @@ import SupportFiles
 import WinCommandEnCoding
 import WinRightKeyReg
 from WinRightKeyReg import RegisterWinKey
+import QSettingsUtil
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -88,6 +89,19 @@ class Ui_MainWidget(object):
         settingWinRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
         settingWinRightKeyAction.connect(settingWinRightKeyAction, QtCore.SIGNAL('triggered()'), self.setWinRightKey)
         setting.addAction(settingWinRightKeyAction)
+        setting.addSeparator()
+
+        # 设置文本换行
+        settingTextWrapMenu = setting.addMenu("&set text wrap")
+        settingTextWrapOnAction = QtGui.QAction('text wrap on', mainWindow)
+        settingTextWrapOnAction.setStatusTip(_fromUtf8('开启文本换行'))
+        settingTextWrapOnAction.connect(settingTextWrapOnAction, QtCore.SIGNAL('triggered()'), self.setTextWrapOn)
+        settingTextWrapMenu.addAction(settingTextWrapOnAction)
+
+        settingTextWrapOffAction = QtGui.QAction('text wrap off', mainWindow)
+        settingTextWrapOffAction.setStatusTip(_fromUtf8('关闭文本换行'))
+        settingTextWrapOffAction.connect(settingTextWrapOffAction, QtCore.SIGNAL('triggered()'), self.setTextWrapOff)
+        settingTextWrapMenu.addAction(settingTextWrapOffAction)
 
         tools = self.menubar.addMenu('&Tools')
 
@@ -184,6 +198,26 @@ class Ui_MainWidget(object):
         winRightKey = RegisterWinKey(programPath)
         winRightKey.register()
 
+    # 设置文本换行
+    def setTextWrapOn(self):
+        QSettingsUtil.setTextWrap(QSettingsUtil.textWrapOn)
+        self.setShowTabTxtWrap()
+        # print QSettingsUtil.getTextWrap()
+
+    def setTextWrapOff(self):
+        QSettingsUtil.setTextWrap(QSettingsUtil.textWrapOff)
+        self.setShowTabTxtWrap()
+
+    def setShowTabTxtWrap(self):
+        tabCount = self.tabWidget.count()
+        txtWrap = QtGui.QTextEdit.NoWrap
+        if QSettingsUtil.getTextWrap() == QtCore.QString.number(QSettingsUtil.textWrapOn):
+            txtWrap = QtGui.QTextEdit.NoWrap
+        else:
+            txtWrap = QtGui.QTextEdit.WidgetWidth
+        for index in range(0, tabCount):
+            self.tabWidget.widget(index).setLineWrapMode(txtWrap)
+
     # 打开文件，对应 Ctrl+O
     def openFile(self):
         filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log files(*.log *.md *.txt)'))
@@ -206,7 +240,12 @@ class Ui_MainWidget(object):
         loadTextEdit = QtGui.QTextEdit()
         loadTextEdit.setFont(self.getFont('Monospace'))
         loadTextEdit.setText(_translate('', data, None))
-        loadTextEdit.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        if QSettingsUtil.getTextWrap() == QtCore.QString.number(QSettingsUtil.textWrapOn):
+            # NoWrap: 不自动换行
+            loadTextEdit.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+        else:
+            # WidgetWidth：自动换行
+            loadTextEdit.setLineWrapMode(QtGui.QTextEdit.WidgetWidth)
         filePath = str(_translate('', filePath, None))
         fileName = FileUtil.getFileName(filePath)
         # print 'fileName= %s' %fileName
@@ -528,6 +567,7 @@ class LogMainWindow(QtGui.QMainWindow):
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
+    QSettingsUtil.init()
     logMainWin = LogMainWindow()
     uiMainWidget = Ui_MainWidget()
     uiMainWidget.setupUi(logMainWin, WinCommandEnCoding.getOsArgv())
