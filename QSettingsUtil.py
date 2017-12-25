@@ -13,6 +13,7 @@ HKEY_USERS\S-1-5-21-1891589526-117931021-550679562-10201\Software\AsherYang\LogA
 """
 
 from PyQt4 import QtCore
+import Constants
 
 textWrapKeyGroup = 'textWrapKeyGroup'
 textWrapKey = 'textWrap'
@@ -23,9 +24,9 @@ textWrapOff = 1
 
 
 def init():
-    QtCore.QCoreApplication.setOrganizationName('AsherYang')
-    QtCore.QCoreApplication.setOrganizationDomain('fansdroid.net')
-    QtCore.QCoreApplication.setApplicationName('LogAnalytics')
+    QtCore.QCoreApplication.setOrganizationName(Constants.OrganizationName)
+    QtCore.QCoreApplication.setOrganizationDomain(Constants.OrganizationDomain)
+    QtCore.QCoreApplication.setApplicationName(Constants.ApplicationName)
 
 
 # 设置文本换行。 0：不换行，1：换行； 默认为0 不换行。

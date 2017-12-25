@@ -18,6 +18,7 @@ import WinCommandEnCoding
 import WinRightKeyReg
 from WinRightKeyReg import RegisterWinKey
 import QSettingsUtil
+import Constants
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -56,7 +57,7 @@ class Ui_MainWidget(object):
     def setupUi(self, mainWindow, argv=None):
         self.mainwindow = mainWindow
         self.originalDataList = []
-        self.filterConfigFilePath = '.\\filter_config'
+        self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), Constants.filterConfigFileName)
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
