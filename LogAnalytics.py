@@ -57,7 +57,10 @@ class Ui_MainWidget(object):
     def setupUi(self, mainWindow, argv=None):
         self.mainwindow = mainWindow
         self.originalDataList = []
-        self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), Constants.filterConfigFileName)
+        # 获取当前脚本所在的目录
+        self.sysArg0 = argv[0]
+        self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)),
+                                                 Constants.filterConfigFileName)
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
@@ -192,7 +195,7 @@ class Ui_MainWidget(object):
 
     # 设置windows 右键打开方式, 加入windows 注册表
     def setWinRightKey(self):
-        programPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), WinRightKeyReg.prog_name)
+        programPath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)), WinRightKeyReg.prog_name)
         winRightKey = RegisterWinKey(programPath)
         winRightKey.register()
 
