@@ -56,7 +56,10 @@ def resource_path(relative_path):
 class Ui_MainWidget(object):
     def setupUi(self, mainWindow, argv=None):
         self.mainwindow = mainWindow
+        # 保存所有 Tab 的 originalData
         self.originalDataList = []
+        # 保存所有 Tab 的 filePath
+        self.tabFilePathList = []
         # 获取当前脚本所在的目录
         self.sysArg0 = argv[0]
         self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)),
@@ -149,6 +152,7 @@ class Ui_MainWidget(object):
         self.tabWidget.setTabsClosable(True)
         self.tabWidget.setMovable(True)
         self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('tabCloseRequested(int)'), self.tabClose)
+        self.tabWidget.connect(self.tabWidget, QtCore.SIGNAL('currentChanged(int)'), self.currentTabChange)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('closeCurrentTabSignal()'), self.currentTabCloseSlot)
         self.tabWidget.connect(mainWindow, QtCore.SIGNAL('dropOpenFileSignal(QString)'), self.setLogTxt)
 
@@ -267,6 +271,7 @@ class Ui_MainWidget(object):
         fileName = FileUtil.getFileName(filePath)
         # print 'fileName= %s' %fileName
         self.originalDataList.append(data)
+        self.tabFilePathList.append(_translate('', filePath, None))
         self.tabWidget.addTab(loadTextEdit, _translate('', fileName, None))
 
     def saveLogAnalyticsFile(self):
@@ -334,6 +339,12 @@ class Ui_MainWidget(object):
     def tabClose(self, index):
         self.tabWidget.removeTab(index)
         del self.originalDataList[index]
+        del self.tabFilePathList[index]
+        if len(self.tabFilePathList) == 0:
+            self.mainwindow.setWindowTitle(Constants.ApplicationName)
+
+    def currentTabChange(self, index):
+        self.mainwindow.setWindowTitle(self.tabFilePathList[index])
 
     # 获取当前 Tab 的 OriginalData
     def getCurrentTabOriginalData(self):
@@ -544,7 +555,7 @@ class LogMainWindow(QtGui.QMainWindow):
 
         screen = QtGui.QDesktopWidget().screenGeometry()
         self.resize(screen.width() / 4 * 3, screen.height() / 4 * 3)
-        self.setWindowTitle('LogAnalytics')
+        self.setWindowTitle(Constants.ApplicationName)
         self.setAcceptDrops(True)
 
     def keyPressEvent(self, event):
