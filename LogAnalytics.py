@@ -12,13 +12,14 @@ import sys
 
 from PyQt4 import QtCore, QtGui
 
+import Constants
 import FileUtil
+import QSettingsUtil
 import SupportFiles
 import WinCommandEnCoding
 import WinRightKeyReg
+from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
-import QSettingsUtil
-import Constants
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -92,10 +93,17 @@ class Ui_MainWidget(object):
         file.addAction(saveLogAnalyticsAction)
 
         setting = self.menubar.addMenu('&Setting')
-        settingWinRightKeyAction = QtGui.QAction('set right key', mainWindow)
-        settingWinRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
-        settingWinRightKeyAction.connect(settingWinRightKeyAction, QtCore.SIGNAL('triggered()'), self.setWinRightKey)
-        setting.addAction(settingWinRightKeyAction)
+        settingLogAnalyticsWinRightKeyAction = QtGui.QAction('set log key', mainWindow)
+        settingLogAnalyticsWinRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
+        settingLogAnalyticsWinRightKeyAction.connect(settingLogAnalyticsWinRightKeyAction, QtCore.SIGNAL('triggered()'),
+                                                     self.setLogAnalyticsWinRightKey)
+        setting.addAction(settingLogAnalyticsWinRightKeyAction)
+
+        settingCmdRightKeyAction = QtGui.QAction('set cmd key', mainWindow)
+        settingCmdRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
+        settingCmdRightKeyAction.connect(settingCmdRightKeyAction, QtCore.SIGNAL('triggered()'),
+                                         self.setCmdWinRightKey)
+        setting.addAction(settingCmdRightKeyAction)
         setting.addSeparator()
 
         # 设置文本换行
@@ -104,7 +112,8 @@ class Ui_MainWidget(object):
         self.settingTextWrapAction.setIcon(QtGui.QIcon(checkIconPixmap))
         self.settingTextWrapAction.setStatusTip(_fromUtf8('自动换行'))
         self.setTextWrapIconVisible()
-        self.settingTextWrapAction.connect(self.settingTextWrapAction, QtCore.SIGNAL('triggered()'), self.changeTextWrap)
+        self.settingTextWrapAction.connect(self.settingTextWrapAction, QtCore.SIGNAL('triggered()'),
+                                           self.changeTextWrap)
         setting.addAction(self.settingTextWrapAction)
 
         tools = self.menubar.addMenu('&Tools')
@@ -198,10 +207,14 @@ class Ui_MainWidget(object):
         return font
 
     # 设置windows 右键打开方式, 加入windows 注册表
-    def setWinRightKey(self):
+    def setLogAnalyticsWinRightKey(self):
         programPath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)), WinRightKeyReg.prog_name)
         winRightKey = RegisterLogAnalyticsWinKey(programPath)
         winRightKey.register()
+
+    def setCmdWinRightKey(self):
+        cmdWinKey = RegisterCmdWinKey()
+        cmdWinKey.register()
 
     # 设置文本换行
     def changeTextWrap(self):

@@ -22,6 +22,7 @@ from _winreg import KEY_ALL_ACCESS
 prog_name = 'LogAnalytics.exe'
 
 
+# 注册LogAnalytics 程序到注册表，用于右键运行方式
 class RegisterLogAnalyticsWinKey:
     def __init__(self, programPath):
         self.prog_path = programPath
@@ -40,6 +41,22 @@ class RegisterLogAnalyticsWinKey:
         # value = _winreg.QueryValue(subKey, 'command').split('"')[1]
         # value2 = _winreg.QueryInfoKey(subKey)
 
+        _winreg.CloseKey(key)
+        _winreg.CloseKey(subKey)
+
+
+# 注册cmd 命令行到注册表，用于右键运行方式，不用cd 到对应文件夹
+# http://blog.csdn.net/rchm8519/article/details/47991419
+class RegisterCmdWinKey:
+    def __init__(self):
+        pass
+
+    # 只在 Folder 上面才会出现的右键选项。不同于LogAnalytics 右键
+    def register(self):
+        key = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, r'Folder\shell')
+        newKey = _winreg.CreateKeyEx(key, 'cmdPrompt', 0, KEY_ALL_ACCESS)
+        subKey = _winreg.OpenKey(_winreg.HKEY_CLASSES_ROOT, r'Folder\shell\cmdPrompt')
+        _winreg.SetValue(subKey, 'command', _winreg.REG_SZ, 'C:\Windows\system32\cmd.exe cd' + ' "%1"')
         _winreg.CloseKey(key)
         _winreg.CloseKey(subKey)
 
