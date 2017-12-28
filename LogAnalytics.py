@@ -16,7 +16,7 @@ import FileUtil
 import SupportFiles
 import WinCommandEnCoding
 import WinRightKeyReg
-from WinRightKeyReg import RegisterWinKey
+from WinRightKeyReg import RegisterLogAnalyticsWinKey
 import QSettingsUtil
 import Constants
 
@@ -200,7 +200,7 @@ class Ui_MainWidget(object):
     # 设置windows 右键打开方式, 加入windows 注册表
     def setWinRightKey(self):
         programPath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)), WinRightKeyReg.prog_name)
-        winRightKey = RegisterWinKey(programPath)
+        winRightKey = RegisterLogAnalyticsWinKey(programPath)
         winRightKey.register()
 
     # 设置文本换行

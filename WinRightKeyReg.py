@@ -22,7 +22,7 @@ from _winreg import KEY_ALL_ACCESS
 prog_name = 'LogAnalytics.exe'
 
 
-class RegisterWinKey:
+class RegisterLogAnalyticsWinKey:
     def __init__(self, programPath):
         self.prog_path = programPath
 
@@ -46,5 +46,5 @@ class RegisterWinKey:
 
 if __name__ == "__main__":
     programPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), prog_name)
-    regWinKey = RegisterWinKey(programPath)
+    regWinKey = RegisterLogAnalyticsWinKey(programPath)
     regWinKey.register()
