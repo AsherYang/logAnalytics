@@ -19,5 +19,7 @@ logAnalytics 是一款用 python 编写的日志分析工具
 - [ ] 右键打开文件 会打开多个终端的问题
 - [x] 设置window title 文件名
 
+## 程序运行图
+
 ![pic1](https://raw.githubusercontent.com/AsherYang/logAnalytics/master/screenshot/logAnalytics_1.png)
 ![pic2](https://raw.githubusercontent.com/AsherYang/logAnalytics/master/screenshot/logAnalytics_2.png)
