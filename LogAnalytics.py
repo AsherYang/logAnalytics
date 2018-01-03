@@ -20,6 +20,9 @@ import WinCommandEnCoding
 import WinRightKeyReg
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
+import RunSysCommand
+from RunSysCommand import RunCopyXTCLogCmd
+import threading
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -104,6 +107,14 @@ class Ui_MainWidget(object):
         settingCmdRightKeyAction.connect(settingCmdRightKeyAction, QtCore.SIGNAL('triggered()'),
                                          self.setCmdWinRightKey)
         setting.addAction(settingCmdRightKeyAction)
+        setting.addSeparator()
+
+        # cmd tools:　copy xtc log to D:\xxFolder
+        self.settingCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
+        self.settingCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
+        self.settingCopyXtcLogAction.connect(self.settingCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
+                                        self.copyXtcLogThread)
+        setting.addAction(self.settingCopyXtcLogAction)
         setting.addSeparator()
 
         # 设置文本换行
@@ -215,6 +226,21 @@ class Ui_MainWidget(object):
     def setCmdWinRightKey(self):
         cmdWinKey = RegisterCmdWinKey()
         cmdWinKey.register()
+
+    # copy xtc log to D:\xxFolder
+    def copyXtcLog(self):
+        copyXtcLog = RunCopyXTCLogCmd()
+        result = copyXtcLog.run(RunSysCommand.copyXtcLogPath)
+        if result == 0:
+            self.showCopyLogTips(u'copy log over')
+
+    def showCopyLogTips(self, msg):
+        self.statusBar.showMessage(msg)
+
+    def copyXtcLogThread(self):
+        thread = threading.Thread(target=self.copyXtcLog)
+        thread.setDaemon(True)
+        thread.start()
 
     # 设置文本换行
     def changeTextWrap(self):
