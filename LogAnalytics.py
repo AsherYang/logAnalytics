@@ -9,20 +9,20 @@
 import StringIO
 import os
 import sys
+import threading
 
 from PyQt4 import QtCore, QtGui
 
 import Constants
 import FileUtil
 import QSettingsUtil
+import RunSysCommand
 import SupportFiles
 import WinCommandEnCoding
 import WinRightKeyReg
+from RunSysCommand import RunCopyXTCLogCmd
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
-import RunSysCommand
-from RunSysCommand import RunCopyXTCLogCmd
-import threading
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -109,12 +109,12 @@ class Ui_MainWidget(object):
         setting.addAction(settingCmdRightKeyAction)
         setting.addSeparator()
 
-        # cmd tools:　copy xtc log to D:\xxFolder
-        self.settingCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
-        self.settingCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
-        self.settingCopyXtcLogAction.connect(self.settingCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
-                                        self.copyXtcLogThread)
-        setting.addAction(self.settingCopyXtcLogAction)
+        # 设置"copy log file" command path
+        settingCopyLogFilePathAction = QtGui.QAction('copy log path', mainWindow)
+        settingCopyLogFilePathAction.setStatusTip(_fromUtf8('设置copy log file 路径'))
+        settingCopyLogFilePathAction.connect(settingCopyLogFilePathAction, QtCore.SIGNAL('triggered()'),
+                                             self.setCopyLogFilePath)
+        setting.addAction(settingCopyLogFilePathAction)
         setting.addSeparator()
 
         # 设置文本换行
@@ -128,6 +128,13 @@ class Ui_MainWidget(object):
         setting.addAction(self.settingTextWrapAction)
 
         tools = self.menubar.addMenu('&Tools')
+        # cmd tools:　copy xtc log to D:\xxFolder
+        toolCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
+        toolCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
+        toolCopyXtcLogAction.connect(toolCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
+                                     self.copyXtcLogThread)
+        tools.addAction(toolCopyXtcLogAction)
+        tools.addSeparator()
 
         # 添加到 mainWindow
         mainWindow.setMenuBar(self.menubar)
@@ -227,10 +234,20 @@ class Ui_MainWidget(object):
         cmdWinKey = RegisterCmdWinKey()
         cmdWinKey.register()
 
+    def setCopyLogFilePath(self):
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', './', 'log cmd(*.bat)'))
+        if not filePath:
+            return
+        print "bat file path = ", filePath.strip()
+        QSettingsUtil.setCopyLogCmdPath(str(_translate("", filePath.strip(), None)))
+
     # copy xtc log to D:\xxFolder
     def copyXtcLog(self):
         copyXtcLog = RunCopyXTCLogCmd()
-        result = copyXtcLog.run(RunSysCommand.copyXtcLogPath)
+        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
+        if not copyLogFilePath:
+            copyLogFilePath = RunSysCommand.copyXtcLogPath
+        result = copyXtcLog.run(str(_translate("", copyLogFilePath, None)))
         if result == 0:
             self.showCopyLogTips(u'copy log over')
 
@@ -238,6 +255,7 @@ class Ui_MainWidget(object):
         self.statusBar.showMessage(msg)
 
     def copyXtcLogThread(self):
+        self.showCopyLogTips(u'start copy log..')
         thread = threading.Thread(target=self.copyXtcLog)
         thread.setDaemon(True)
         thread.start()

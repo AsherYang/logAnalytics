@@ -13,6 +13,7 @@ HKEY_USERS\S-1-5-21-1891589526-117931021-550679562-10201\Software\AsherYang\LogA
 """
 
 from PyQt4 import QtCore
+
 import Constants
 
 textWrapKeyGroup = 'textWrapKeyGroup'
@@ -21,6 +22,11 @@ textWrapKey = 'textWrap'
 textWrapOn = 0
 # 1：换行(自动换行)
 textWrapOff = 1
+
+# 设置 Logs-CopyToPC.bat 的路径Group
+LogCommandKeyGroup = 'xtcLogKeyGroup'
+copyLogPathKey = 'copyLogPath'
+deleteLogPathKey = 'deleteLogPath'
 
 
 def init():
@@ -44,3 +50,22 @@ def getTextWrap():
     textWrapValue = setting.value(textWrapKey, 0).toString()
     setting.endGroup()
     return textWrapValue
+
+
+# 设置copy log file command dir
+def setCopyLogCmdPath(dirPath):
+    if dirPath is None:
+        return
+    setting = QtCore.QSettings()
+    setting.beginGroup(LogCommandKeyGroup)
+    setting.setValue(copyLogPathKey, dirPath)
+    setting.endGroup()
+    setting.sync()
+
+
+def getCopyLogCmdPath():
+    setting = QtCore.QSettings()
+    setting.beginGroup(LogCommandKeyGroup)
+    copyLogFilePath = setting.value(copyLogPathKey, "").toString()
+    setting.endGroup()
+    return copyLogFilePath
