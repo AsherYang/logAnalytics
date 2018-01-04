@@ -129,11 +129,13 @@ class Ui_MainWidget(object):
 
         tools = self.menubar.addMenu('&Tools')
         # cmd tools:　copy xtc log to D:\xxFolder
-        toolCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
-        toolCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
-        toolCopyXtcLogAction.connect(toolCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
-                                     self.copyXtcLogThread)
-        tools.addAction(toolCopyXtcLogAction)
+        self.toolCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
+        self.toolCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
+        self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
+                                          self.copyXtcLogThread)
+        self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('copyLogTipSignal(QString)'),
+                                          self.showCopyLogTips)
+        tools.addAction(self.toolCopyXtcLogAction)
         tools.addSeparator()
 
         # 添加到 mainWindow
@@ -242,23 +244,31 @@ class Ui_MainWidget(object):
         QSettingsUtil.setCopyLogCmdPath(str(_translate("", filePath.strip(), None)))
 
     # copy xtc log to D:\xxFolder
-    def copyXtcLog(self):
-        copyXtcLog = RunCopyXTCLogCmd()
-        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
-        if not copyLogFilePath:
-            copyLogFilePath = RunSysCommand.copyXtcLogPath
-        result = copyXtcLog.run(str(_translate("", copyLogFilePath, None)))
-        if result == 0:
-            self.showCopyLogTips(u'copy log over')
-
-    def showCopyLogTips(self, msg):
-        self.statusBar.showMessage(msg)
-
     def copyXtcLogThread(self):
         self.showCopyLogTips(u'start copy log..')
         thread = threading.Thread(target=self.copyXtcLog)
         thread.setDaemon(True)
         thread.start()
+
+    def copyXtcLog(self):
+        copyXtcLog = RunCopyXTCLogCmd()
+        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
+        if not copyLogFilePath:
+            copyLogFilePath = RunSysCommand.copyXtcLogPath
+        result = copyXtcLog.run(str(_translate("", copyLogFilePath, None)), callback=self.emitCopyLogTip)
+        # print 'result = ', result.returncode
+        if result.returncode == 0:
+            print 'copy log over'
+
+    def showCopyLogTips(self, msg):
+        self.statusBar.showMessage(msg)
+
+    def copyLogTipSignal(self, msg):
+        pass
+
+    # emit tip 解决在子线程中刷新UI 的问题。' QWidget::repaint: Recursive repaint detected '
+    def emitCopyLogTip(self, msg):
+        self.toolCopyXtcLogAction.emit(QtCore.SIGNAL('copyLogTipSignal(QString)'), msg)
 
     # 设置文本换行
     def changeTextWrap(self):
@@ -600,6 +610,7 @@ class CustomFilterItemWidget(QtGui.QWidget):
         self.itemIconBtn.setFixedSize(iconPixmap.rect().size())
 
     def iconClick(self):
+        # self.getItemIndex() is arguments
         self.emit(QtCore.SIGNAL('deleteItem(int)'), self.getItemIndex())
 
     def deleteItem(self, itemIndex):
