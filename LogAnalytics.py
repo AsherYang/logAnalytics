@@ -110,7 +110,7 @@ class Ui_MainWidget(object):
         setting.addSeparator()
 
         # 设置"copy log file" command path
-        settingCopyLogFilePathAction = QtGui.QAction('copy log path', mainWindow)
+        settingCopyLogFilePathAction = QtGui.QAction('set copy log', mainWindow)
         settingCopyLogFilePathAction.setStatusTip(_fromUtf8('设置copy log file 路径'))
         settingCopyLogFilePathAction.connect(settingCopyLogFilePathAction, QtCore.SIGNAL('triggered()'),
                                              self.setCopyLogFilePath)
@@ -243,7 +243,7 @@ class Ui_MainWidget(object):
         print "bat file path = ", filePath.strip()
         QSettingsUtil.setCopyLogCmdPath(str(_translate("", filePath.strip(), None)))
 
-    # copy xtc log to D:\xxFolder
+    # copy xtc log to D:\xxFolder in thread
     def copyXtcLogThread(self):
         self.showCopyLogTips(u'start copy log..')
         thread = threading.Thread(target=self.copyXtcLog)
