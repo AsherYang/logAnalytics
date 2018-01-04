@@ -24,7 +24,7 @@ class RunCopyXTCLogCmd:
     # 该种方法可以获取到终端输出结果
     # 通过 callback 把 msg 传递出去。
     def run(self, path, callback):
-        process = subprocess.Popen(path, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(path, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while process.poll() is None:
             line = process.stdout.readline()
             line = line.strip()
