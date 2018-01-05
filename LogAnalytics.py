@@ -131,6 +131,7 @@ class Ui_MainWidget(object):
         # cmd tools:　copy xtc log to D:\xxFolder
         self.toolCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
         self.toolCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
+        self.toolCopyXtcLogAction.setShortcut('Ctrl+Alt+C')
         self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
                                           self.copyXtcLogThread)
         self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('copyLogTipSignal(QString)'),
@@ -487,7 +488,7 @@ class Ui_MainWidget(object):
             return
         filterDialog = QtGui.QDialog()
         filterDialog.setWindowTitle(u'过滤条件')
-        filterDialog.resize(220, 350)
+        filterDialog.resize(260, 400)
         filterLayout = QtGui.QGridLayout()
         self.filterListWidget = QtGui.QListWidget()
         listItemIndex = 0
