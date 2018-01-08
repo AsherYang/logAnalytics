@@ -1,1 +1,1 @@
-get_current_call#@$last_call_fail#@$onstatechange()#@$gsmcdmacalltracker#@$telecomanalytics#@$imsservicesub
+get_current_call#@$last_call_fail#@$onstatechange()#@$gsmcdmacalltracker#@$telecomanalytics#@$imsservicesub#@$signalstrength:#@$cellsignalstrength#@$voice_registration_state#@$disconnectcause#@$com.xtc.android.start_call#@$通过按钮触发打电话#@$onsuccessfulincomingcall#@$handlenewringingconnection
