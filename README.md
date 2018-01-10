@@ -10,7 +10,7 @@ logAnalytics 是一款用 python 编写的日志分析工具
 ## TODO LIST:
 
 - [x] 搜索大小写的问题
-- [ ] filterBtn 拉伸BUG
+- [x] filterBtn 拉伸BUG
 - [ ] 支持设置隐藏日志分析窗口
 - [x] 拖拽支持文件限定，过滤拖拽文件类型
 - [x] 清除Filter后，恢复原始数据的问题
