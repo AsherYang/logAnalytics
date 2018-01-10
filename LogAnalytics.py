@@ -193,10 +193,17 @@ class Ui_MainWidget(object):
         hFilterSplitter.addWidget(self.filterBtn)
         hFilterSplitter.addWidget(self.saveKeyWordBtn)
         hFilterSplitter.addWidget(self.LoadKeyWorkBtn)
+        # disable QSplitter drag and drop
+        hHandler = hFilterSplitter.handle(1)
+        if hHandler:
+            hHandler.setDisabled(True)
 
         vSplitter = QtGui.QSplitter(QtCore.Qt.Vertical)
         vSplitter.addWidget(hFilterSplitter)
         vSplitter.addWidget(self.tabWidget)
+        vHandler = vSplitter.handle(1)
+        if vHandler:
+            vHandler.setDisabled(True)
 
         hSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
         hSplitter.addWidget(vSplitter)
@@ -417,6 +424,8 @@ class Ui_MainWidget(object):
     # 获取当前 Tab 的 OriginalData
     def getCurrentTabOriginalData(self):
         tabIndex = self.tabWidget.currentIndex()
+        if self.tabWidget.count() == 0 or tabIndex == -1:
+            return
         return self.originalDataList[tabIndex]
 
     def filter(self):
