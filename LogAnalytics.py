@@ -193,7 +193,7 @@ class Ui_MainWidget(object):
         hFilterSplitter.addWidget(self.filterBtn)
         hFilterSplitter.addWidget(self.saveKeyWordBtn)
         hFilterSplitter.addWidget(self.LoadKeyWorkBtn)
-        # disable QSplitter drag and drop
+        # 禁止鼠标拖动
         hHandler = hFilterSplitter.handle(1)
         if hHandler:
             hHandler.setDisabled(True)
@@ -205,14 +205,22 @@ class Ui_MainWidget(object):
         if vHandler:
             vHandler.setDisabled(True)
 
-        hSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        hSplitter.addWidget(vSplitter)
-        hSplitter.addWidget(self.logAnalyticsEdit)
+        self.hSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        self.hSplitter.addWidget(vSplitter)
+        self.hSplitter.addWidget(self.logAnalyticsEdit)
         # 按比例分配 5:3
-        hSplitter.setStretchFactor(0, 5)
-        hSplitter.setStretchFactor(1, 3)
-
-        hBboxLayout.addWidget(hSplitter)
+        self.hSplitter.setStretchFactor(0, 5)
+        self.hSplitter.setStretchFactor(1, 3)
+        # feature: arrow/collapse button to open/hidden logAnalyticsEdit
+        # 设置LogAnalyticsEdit split 显示与隐藏
+        hHandler = self.hSplitter.handle(1)
+        toggleButton = QtGui.QPushButton(hHandler)
+        toggleButton.move(0, 300)
+        toggleButton.resize(10, 50)
+        toggleButton.connect(toggleButton, QtCore.SIGNAL('clicked()'), self.handleSplitterButton)
+        # 设置 LogAnalyticsEdit 默认隐藏
+        self.hSplitter.setSizes([1, 0])
+        hBboxLayout.addWidget(self.hSplitter)
         vBoxLayout.addLayout(hBboxLayout)
 
         self.centralwidget.setLayout(vBoxLayout)
@@ -233,6 +241,14 @@ class Ui_MainWidget(object):
         font.setPointSize(10)
         font.setFixedPitch(True)
         return font
+
+    # 设置LogAnalyticsEdit split 显示与隐藏
+    def handleSplitterButton(self):
+        # print all(self.hSplitter.sizes())
+        if not all(self.hSplitter.sizes()):
+            self.hSplitter.setSizes([1, 1])
+        else:
+            self.hSplitter.setSizes([1, 0])
 
     # 设置windows 右键打开方式, 加入windows 注册表
     def setLogAnalyticsWinRightKey(self):
