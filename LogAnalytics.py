@@ -419,6 +419,8 @@ class Ui_MainWidget(object):
         data = stream.readAll()
         file.close()
         self.logAnalyticsEdit.setText(_translate('', data, None))
+        # open logAnalyticsEdit show
+        self.hSplitter.setSizes([1, 1])
 
     def currentTabCloseSlot(self):
         tabIndex = self.tabWidget.currentIndex()
