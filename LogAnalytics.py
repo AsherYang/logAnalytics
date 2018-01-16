@@ -262,7 +262,7 @@ class Ui_MainWidget(object):
 
     def setCopyLogFilePath(self):
         filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log cmd(*.bat)',
-                                                             QtGui.QFileDialog.DontUseNativeDialog))
+                                                             options=QtGui.QFileDialog.DontUseNativeDialog))
         if not filePath:
             return
         print "bat file path = ", filePath.strip()
@@ -334,8 +334,8 @@ class Ui_MainWidget(object):
     # 打开文件，对应 Ctrl+O
     def openFile(self):
         # open last remember directory {@see http://blog.csdn.net/shawpan/article/details/50281085}
-        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log files(*.log *.md *.txt)'),
-                           QtGui.QFileDialog.DontUseNativeDialog)
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log files(*.log *.md *.txt)',
+                                                             options=QtGui.QFileDialog.DontUseNativeDialog))
         if not filePath:
             return
         self.setLogTxt(filePath)
@@ -412,7 +412,7 @@ class Ui_MainWidget(object):
         supportFileStr = supportFileStr.strip()
         fileName = unicode(
             QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log files(' + supportFileStr + ')',
-                                              QtGui.QFileDialog.DontUseNativeDialog))
+                                              options=QtGui.QFileDialog.DontUseNativeDialog))
         if not fileName:
             return
         file = QtCore.QFile(fileName)
