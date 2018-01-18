@@ -261,8 +261,8 @@ class Ui_MainWidget(object):
         cmdWinKey.register()
 
     def setCopyLogFilePath(self):
-        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log cmd(*.bat)',
-                                                             options=QtGui.QFileDialog.DontUseNativeDialog))
+        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', copyLogFilePath, 'log cmd(*.bat)'))
         if not filePath:
             return
         print "bat file path = ", filePath.strip()
@@ -276,11 +276,11 @@ class Ui_MainWidget(object):
         thread.start()
 
     def copyXtcLog(self):
-        copyXtcLog = RunCopyXTCLogCmd()
+        copyXtcLogCommand = RunCopyXTCLogCmd()
         copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
         if not copyLogFilePath:
             copyLogFilePath = RunSysCommand.copyXtcLogPath
-        result = copyXtcLog.run(str(_translate("", copyLogFilePath, None)), callback=self.emitCopyLogTip)
+        result = copyXtcLogCommand.run(str(_translate("", copyLogFilePath, None)), callback=self.emitCopyLogTip)
         # print 'result = ', result.returncode
         if result.returncode == 0:
             print 'copy log over'
@@ -333,11 +333,11 @@ class Ui_MainWidget(object):
 
     # 打开文件，对应 Ctrl+O
     def openFile(self):
-        # open last remember directory {@see http://blog.csdn.net/shawpan/article/details/50281085}
-        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log files(*.log *.md *.txt)',
-                                                             options=QtGui.QFileDialog.DontUseNativeDialog))
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(
+            None, 'Open file', self.getLastOpenDir(), 'log files(*.log *.md *.txt)'))
         if not filePath:
             return
+        QSettingsUtil.setLastDir(FileUtil.getFileDir(str(_translate("", filePath.strip(), None))))
         self.setLogTxt(filePath)
 
     # 加载LOG 到显示区，同时将current tab name 设置为当前文件名
@@ -367,6 +367,14 @@ class Ui_MainWidget(object):
         self.originalDataList.append(data)
         self.tabFilePathList.append(_translate('', filePath, None))
         self.tabWidget.addTab(loadTextEdit, _translate('', fileName, None))
+
+    # 获取QFileDialog 上次打开的路径
+    def getLastOpenDir(self):
+        # open last remember directory
+        lastPath = QSettingsUtil.getLastDir()
+        if not QtCore.QFile(lastPath).exists():
+            lastPath = 'd://'
+        return lastPath
 
     def saveLogAnalyticsFile(self):
         logEditTxt = _translate('', self.logAnalyticsEdit.toPlainText(), None)
@@ -410,11 +418,11 @@ class Ui_MainWidget(object):
         for file in supportFiles:
             supportFileStr += "*." + file + " "
         supportFileStr = supportFileStr.strip()
-        fileName = unicode(
-            QtGui.QFileDialog.getOpenFileName(None, 'Open file', '', 'log files(' + supportFileStr + ')',
-                                              options=QtGui.QFileDialog.DontUseNativeDialog))
+        fileName = unicode(QtGui.QFileDialog.getOpenFileName(
+            None, 'Open file', self.getLastOpenDir(), 'log files(' + supportFileStr + ')'))
         if not fileName:
             return
+        QSettingsUtil.setLastDir(FileUtil.getFileDir(str(_translate("", fileName.strip(), None))))
         file = QtCore.QFile(fileName)
         if not file.open(QtCore.QIODevice.ReadOnly):
             return

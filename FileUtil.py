@@ -26,3 +26,10 @@ def getFileExt(filePath):
     if not filePath:
         return fileExt
     return os.path.splitext(filePath)[1][1:].lower()
+
+
+# 返回文件父目录
+def getFileDir(filePath):
+    if not filePath:
+        return './'
+    return os.path.dirname(filePath)

@@ -28,6 +28,10 @@ LogCommandKeyGroup = 'xtcLogKeyGroup'
 copyLogPathKey = 'copyLogPath'
 deleteLogPathKey = 'deleteLogPath'
 
+# 设置 QFileDialog last path
+lastFilePathGroup = 'lastFilePathGroup'
+lastFilePathKey = 'lastFilePath'
+
 
 def init():
     QtCore.QCoreApplication.setOrganizationName(Constants.OrganizationName)
@@ -69,3 +73,26 @@ def getCopyLogCmdPath():
     copyLogFilePath = setting.value(copyLogPathKey, "").toString()
     setting.endGroup()
     return copyLogFilePath
+
+
+# 记录上次QFileDialog 打开文件路径
+# @see http://blog.csdn.net/shawpan/article/details/50281085
+# 连接里使用 options=QtGui.QFileDialog.DontUseNativeDialog 配合dir=''可以实现功能，但是在window下也忒丑了.
+# 所以决定使用 QSetting 来记录位置
+def setLastDir(dirPath):
+    if dirPath is None:
+        return
+    setting = QtCore.QSettings()
+    setting.beginGroup(lastFilePathGroup)
+    setting.setValue(lastFilePathKey, dirPath)
+    setting.endGroup()
+    setting.sync()
+
+
+def getLastDir():
+    setting = QtCore.QSettings()
+    setting.beginGroup(lastFilePathGroup)
+    # 默认路径设置为 'D://'
+    lastFilePath = setting.value(lastFilePathKey, "d://").toString()
+    setting.endGroup()
+    return lastFilePath
