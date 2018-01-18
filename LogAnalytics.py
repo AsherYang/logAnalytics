@@ -113,7 +113,7 @@ class Ui_MainWidget(object):
         settingCopyLogFilePathAction = QtGui.QAction('set copy log', mainWindow)
         settingCopyLogFilePathAction.setStatusTip(_fromUtf8('设置copy log file 脚本路径'))
         settingCopyLogFilePathAction.connect(settingCopyLogFilePathAction, QtCore.SIGNAL('triggered()'),
-                                             self.setCopyLogFilePath)
+                                             self.setCopyLogCmdPath)
         setting.addAction(settingCopyLogFilePathAction)
         setting.addSeparator()
 
@@ -260,7 +260,7 @@ class Ui_MainWidget(object):
         cmdWinKey = RegisterCmdWinKey()
         cmdWinKey.register()
 
-    def setCopyLogFilePath(self):
+    def setCopyLogCmdPath(self):
         copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
         filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', copyLogFilePath, 'log cmd(*.bat)'))
         if not filePath:
