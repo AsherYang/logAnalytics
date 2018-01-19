@@ -110,11 +110,17 @@ class Ui_MainWidget(object):
         setting.addSeparator()
 
         # 设置"copy log file" command path
-        settingCopyLogFilePathAction = QtGui.QAction('set copy log', mainWindow)
-        settingCopyLogFilePathAction.setStatusTip(_fromUtf8('设置copy log file 脚本路径'))
-        settingCopyLogFilePathAction.connect(settingCopyLogFilePathAction, QtCore.SIGNAL('triggered()'),
-                                             self.setCopyLogCmdPath)
-        setting.addAction(settingCopyLogFilePathAction)
+        settingCopyLogCmdPathAction = QtGui.QAction('copy system cmd', mainWindow)
+        settingCopyLogCmdPathAction.setStatusTip(_fromUtf8('设置copy system log cmd 脚本路径'))
+        settingCopyLogCmdPathAction.connect(settingCopyLogCmdPathAction, QtCore.SIGNAL('triggered()'),
+                                            self.setCopySystemLogCmdPath)
+        setting.addAction(settingCopyLogCmdPathAction)
+
+        settingCopyLauncherLogCmdPathAction = QtGui.QAction('copy launcher cmd', mainWindow)
+        settingCopyLauncherLogCmdPathAction.setStatusTip(_fromUtf8('设置copy launcher log cmd 脚本路径'))
+        settingCopyLauncherLogCmdPathAction.connect(settingCopyLauncherLogCmdPathAction, QtCore.SIGNAL('triggered()'),
+                                                    self.setCopyLauncherLogCmdPath)
+        setting.addAction(settingCopyLauncherLogCmdPathAction)
         setting.addSeparator()
 
         # 设置文本换行
@@ -128,15 +134,26 @@ class Ui_MainWidget(object):
         setting.addAction(self.settingTextWrapAction)
 
         tools = self.menubar.addMenu('&Tools')
-        # cmd tools:　copy xtc log to D:\xxFolder
-        self.toolCopyXtcLogAction = QtGui.QAction('copy xtc log', mainWindow)
-        self.toolCopyXtcLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Log到D盘'))
-        self.toolCopyXtcLogAction.setShortcut('Ctrl+Alt+C')
-        self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('triggered()'),
-                                          self.copyXtcLogThread)
-        self.toolCopyXtcLogAction.connect(self.toolCopyXtcLogAction, QtCore.SIGNAL('copyLogTipSignal(QString)'),
-                                          self.showCopyLogTips)
-        tools.addAction(self.toolCopyXtcLogAction)
+        # cmd tools:　copy xtc system log to D:\xxFolder
+        self.toolCopyXtcSystemLogAction = QtGui.QAction('copy system log', mainWindow)
+        self.toolCopyXtcSystemLogAction.setStatusTip(_fromUtf8('从SDCard拷贝System Log到D盘'))
+        self.toolCopyXtcSystemLogAction.setShortcut('Ctrl+Alt+C')
+        self.toolCopyXtcSystemLogAction.connect(self.toolCopyXtcSystemLogAction, QtCore.SIGNAL('triggered()'),
+                                                self.copyXtcSystemLogThread)
+        self.toolCopyXtcSystemLogAction.connect(self.toolCopyXtcSystemLogAction,
+                                                QtCore.SIGNAL('copyLogTipSignal(QString)'),
+                                                self.showCopyLogTips)
+        tools.addAction(self.toolCopyXtcSystemLogAction)
+        # cmd tools:　copy xtc launcher log to D:\xxFolder
+        self.toolCopyXtcLauncherLogAction = QtGui.QAction('copy launcher log', mainWindow)
+        self.toolCopyXtcLauncherLogAction.setStatusTip(_fromUtf8('从SDCard拷贝Launcher Log到D盘'))
+        self.toolCopyXtcLauncherLogAction.setShortcut('Ctrl+Alt+L')
+        self.toolCopyXtcLauncherLogAction.connect(self.toolCopyXtcLauncherLogAction, QtCore.SIGNAL('triggered()'),
+                                                  self.copyXtcLauncherLogThread)
+        self.toolCopyXtcLauncherLogAction.connect(self.toolCopyXtcLauncherLogAction,
+                                                  QtCore.SIGNAL('copyLogTipSignal(QString)'),
+                                                  self.showCopyLogTips)
+        tools.addAction(self.toolCopyXtcLauncherLogAction)
         tools.addSeparator()
 
         # 添加到 mainWindow
@@ -260,27 +277,48 @@ class Ui_MainWidget(object):
         cmdWinKey = RegisterCmdWinKey()
         cmdWinKey.register()
 
-    def setCopyLogCmdPath(self):
-        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
-        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', copyLogFilePath, 'log cmd(*.bat)'))
+    # 设置copy system log cmd path
+    def setCopySystemLogCmdPath(self):
+        copyLogCmdPath = QSettingsUtil.getCopySystemLogCmdPath()
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', copyLogCmdPath, 'log cmd(*.bat)'))
         if not filePath:
             return
         print "bat file path = ", filePath.strip()
-        QSettingsUtil.setCopyLogCmdPath(str(_translate("", filePath.strip(), None)))
+        QSettingsUtil.setCopySystemLogCmdPath(str(_translate("", filePath.strip(), None)))
 
-    # copy xtc log to D:\xxFolder in thread
-    def copyXtcLogThread(self):
-        self.showCopyLogTips(u'start copy log..')
-        thread = threading.Thread(target=self.copyXtcLog)
+    # 设置 copy launcher log cmd path
+    def setCopyLauncherLogCmdPath(self):
+        copyLauncherCmdPath = QSettingsUtil.getCopyLauncherLogCmdPath()
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(None, 'Open file', copyLauncherCmdPath,
+                                                             'launcher cmd(*.bat)'))
+        if not filePath:
+            return
+        print 'launcher bat file path = ', filePath.strip()
+        QSettingsUtil.setCopyLauncherLogCmdPath(str(_translate("", filePath.strip(), None)))
+
+    # copy xtc system log to D:\xxFolder in thread
+    def copyXtcSystemLogThread(self):
+        self.showCopyLogTips(u'start copy system log..')
+        copySystemLogCmdPath = QSettingsUtil.getCopySystemLogCmdPath()
+        if not copySystemLogCmdPath:
+            copySystemLogCmdPath = RunSysCommand.copyXtcSystemLogPath
+        thread = threading.Thread(target=self.copyXtcLog, args=(copySystemLogCmdPath,))
         thread.setDaemon(True)
         thread.start()
 
-    def copyXtcLog(self):
+    # copy xtc launcher log to D:\xxFolder in thread
+    def copyXtcLauncherLogThread(self):
+        self.showCopyLogTips(u'start copy launcher log..')
+        copyLauncherLogCmdPath = QSettingsUtil.getCopyLauncherLogCmdPath()
+        if not copyLauncherLogCmdPath:
+            copyLauncherLogCmdPath = RunSysCommand.copyXtcLauncherLogPath
+        thread = threading.Thread(target=self.copyXtcLog, args=(copyLauncherLogCmdPath,))
+        thread.setDaemon(True)
+        thread.start()
+
+    def copyXtcLog(self, cmdPath):
         copyXtcLogCommand = RunCopyXTCLogCmd()
-        copyLogFilePath = QSettingsUtil.getCopyLogCmdPath()
-        if not copyLogFilePath:
-            copyLogFilePath = RunSysCommand.copyXtcLogPath
-        result = copyXtcLogCommand.run(str(_translate("", copyLogFilePath, None)), callback=self.emitCopyLogTip)
+        result = copyXtcLogCommand.run(str(_translate("", cmdPath, None)), callback=self.emitCopyLogTip)
         # print 'result = ', result.returncode
         if result.returncode == 0:
             print 'copy log over'
@@ -293,7 +331,7 @@ class Ui_MainWidget(object):
 
     # emit tip 解决在子线程中刷新UI 的问题。' QWidget::repaint: Recursive repaint detected '
     def emitCopyLogTip(self, msg):
-        self.toolCopyXtcLogAction.emit(QtCore.SIGNAL('copyLogTipSignal(QString)'), msg)
+        self.toolCopyXtcSystemLogAction.emit(QtCore.SIGNAL('copyLogTipSignal(QString)'), msg)
 
     # 设置文本换行
     def changeTextWrap(self):

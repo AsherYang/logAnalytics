@@ -26,6 +26,7 @@ textWrapOff = 1
 # 设置 Logs-CopyToPC.bat 的路径Group
 LogCommandKeyGroup = 'xtcLogKeyGroup'
 copyLogPathKey = 'copyLogPath'
+copyLauncherPathKey = 'copyLauncherPath'
 deleteLogPathKey = 'deleteLogPath'
 
 # 设置 QFileDialog last path
@@ -56,8 +57,8 @@ def getTextWrap():
     return textWrapValue
 
 
-# 设置copy log file command dir
-def setCopyLogCmdPath(dirPath):
+# 设置copy system log file command dir
+def setCopySystemLogCmdPath(dirPath):
     if dirPath is None:
         return
     setting = QtCore.QSettings()
@@ -67,12 +68,31 @@ def setCopyLogCmdPath(dirPath):
     setting.sync()
 
 
-def getCopyLogCmdPath():
+def getCopySystemLogCmdPath():
     setting = QtCore.QSettings()
     setting.beginGroup(LogCommandKeyGroup)
     copyLogFilePath = setting.value(copyLogPathKey, "").toString()
     setting.endGroup()
     return copyLogFilePath
+
+
+# 设置copy launcher log file command dir
+def setCopyLauncherLogCmdPath(dirPath):
+    if dirPath is None:
+        return
+    setting = QtCore.QSettings()
+    setting.beginGroup(LogCommandKeyGroup)
+    setting.setValue(copyLauncherPathKey, dirPath)
+    setting.endGroup()
+    setting.sync()
+
+
+def getCopyLauncherLogCmdPath():
+    setting = QtCore.QSettings()
+    setting.beginGroup(LogCommandKeyGroup)
+    copyLauncherFilePath = setting.value(copyLauncherPathKey, "").toString()
+    setting.endGroup()
+    return copyLauncherFilePath
 
 
 # 记录上次QFileDialog 打开文件路径

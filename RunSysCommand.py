@@ -10,7 +10,8 @@ Desc  : 运行系统 cmd 命令
 
 import subprocess
 
-copyXtcLogPath = r"D:\xtc_resource\4g\XTCLog_TOOL\Logs-CopyToPC.bat"
+copyXtcSystemLogPath = r"D:\xtc_resource\4g\XTCLog_TOOL\Logs-CopyToPC.bat"
+copyXtcLauncherLogPath = r'D:\xtc_resource\4g\XTCLog_TOOL\Logs-CopyToPC_Launcher.bat'
 
 
 class RunCopyXTCLogCmd:
