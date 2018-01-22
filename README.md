@@ -18,7 +18,6 @@ logAnalytics 是一款用 python 编写的日志分析工具
 - [x] 右键打开文件 Load Filter不了的问题
 - [ ] 右键打开文件 会打开多个终端的问题
 - [x] 设置window title 文件名
-- [ ] 将添加 cmd 操作抽象化
 
 ## 程序运行图
 
