@@ -12,6 +12,7 @@ import sys
 import threading
 
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtNetwork import QLocalServer, QLocalSocket
 
 import Constants
 import FileUtil
@@ -58,8 +59,10 @@ def resource_path(relative_path):
 
 
 class Ui_MainWidget(object):
-    def setupUi(self, mainWindow, argv=None):
+    def setupUi(self, mainWindow, localServer, argv=None):
         self.mainwindow = mainWindow
+        # 解决多终端问题 http://www.oschina.net/code/snippet_54100_629
+        self.localServer = localServer
         # 保存所有 Tab 的 originalData
         self.originalDataList = []
         # 保存所有 Tab 的 filePath
@@ -249,6 +252,8 @@ class Ui_MainWidget(object):
             filePath = argv[1]
             if SupportFiles.hasSupportFile(filePath):
                 self.setLogTxt(_translate('', filePath, None))
+        # 监听新到来的连接(新的终端被打开)
+        self.localServer.connect(localServer, QtCore.SIGNAL('newConnection()'), self.newLocalSocketConnection)
 
         mainWindow.setCentralWidget(self.centralwidget)
 
@@ -440,6 +445,7 @@ class Ui_MainWidget(object):
                 return
             stream = QtCore.QTextStream(out_file)
             stream.setCodec('UTF-8')
+            # stream 流操作方式
             stream << _translate('', logEditTxt, None)
             stream.flush()
             out_file.close()
@@ -559,6 +565,7 @@ class Ui_MainWidget(object):
         allFilter = str(oldTxt.readAll())
         allFilterList = allFilter.split('#@$')
         self.showFilterDialog(allFilterList)
+        filterFile.close()
 
     def showFilterDialog(self, filterList):
         if not filterList:
@@ -652,6 +659,24 @@ class Ui_MainWidget(object):
         oldTxt.flush()
         filterFile.close()
 
+    # 监听新到来的连接(新的终端被打开)
+    def newLocalSocketConnection(self):
+        # print 'newLocalSocketConnection'
+        # 处理新启动的程序(终端)发过来的参数
+        serverSocket = self.localServer.nextPendingConnection()
+        if not serverSocket:
+            return
+        serverSocket.waitForReadyRead(1000)
+        stream = QtCore.QTextStream(serverSocket)
+        stream.setCodec('UTF-8')
+        pathData = str(_translate('', stream.readAll(), None))
+        serverSocket.close()
+        # 由于客户端在发送的时候，就已经处理只发送(传递) 打开的文件路径参数，故此处不做校验处理
+        # print SupportFiles.hasSupportFile(pathData)
+        if pathData and SupportFiles.hasSupportFile(pathData):
+            self.setLogTxt(pathData)
+            # print pathData
+
 
 # Load filter item
 class CustomFilterItemWidget(QtGui.QWidget):
@@ -739,11 +764,41 @@ class LogMainWindow(QtGui.QMainWindow):
         return
 
 
-if __name__ == '__main__':
+def main():
     app = QtGui.QApplication(sys.argv)
     QSettingsUtil.init()
     logMainWin = LogMainWindow()
     uiMainWidget = Ui_MainWidget()
-    uiMainWidget.setupUi(logMainWin, WinCommandEnCoding.getOsArgv())
-    logMainWin.show()
-    sys.exit(app.exec_())
+    # single QApplication solution
+    # http://blog.csdn.net/softdzf/article/details/6704187
+    serverName = 'LogAnalyticsServer'
+    clientSocket = QLocalSocket()
+    clientSocket.connectToServer(serverName)
+    # 如果连接成功， 表明server 已经存在，当前已经有实例在运行, 将参数发送给服务端
+    if clientSocket.waitForConnected(500):
+        # print u'连接成功 arg = ', sys.argv
+        stream = QtCore.QTextStream(clientSocket)
+        # for i in range(0, len(sys.argv)):
+        #     stream << sys.argv[i]
+        # 对于打开终端来说，所携带参数为第1位(打开文件的地址)，第0位为本执行程序地址
+        if len(sys.argv) > 1:
+            stream << sys.argv[1]
+            stream.flush()
+            clientSocket.waitForBytesWritten()
+        # close client socket
+        clientSocket.close()
+        return app.quit()
+    # 如果没有实例执行，创建服务器
+    localServer = QLocalServer()
+    # 一直监听端口
+    localServer.listen(serverName)
+    try:
+        uiMainWidget.setupUi(logMainWin, localServer, WinCommandEnCoding.getOsArgv())
+        logMainWin.show()
+        sys.exit(app.exec_())
+    finally:
+        localServer.close()
+
+
+if __name__ == '__main__':
+    main()
