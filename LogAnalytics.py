@@ -235,6 +235,7 @@ class Ui_MainWidget(object):
         # 设置LogAnalyticsEdit split 显示与隐藏
         hHandler = self.hSplitter.handle(1)
         toggleButton = QtGui.QPushButton(hHandler)
+        toggleButton.setShortcut('Ctrl+T')
         toggleButton.move(0, 300)
         toggleButton.resize(10, 50)
         toggleButton.connect(toggleButton, QtCore.SIGNAL('clicked()'), self.handleSplitterButton)
