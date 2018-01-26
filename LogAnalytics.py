@@ -676,7 +676,7 @@ class Ui_MainWidget(object):
         # print SupportFiles.hasSupportFile(pathData)
         if pathData and SupportFiles.hasSupportFile(pathData):
             self.setLogTxt(pathData)
-            # print pathData
+        # print pathData
 
 
 # Load filter item
@@ -770,6 +770,7 @@ def main():
     QSettingsUtil.init()
     logMainWin = LogMainWindow()
     uiMainWidget = Ui_MainWidget()
+    winOsArgv = WinCommandEnCoding.getOsArgv()
     # single QApplication solution
     # http://blog.csdn.net/softdzf/article/details/6704187
     serverName = 'LogAnalyticsServer'
@@ -777,13 +778,14 @@ def main():
     clientSocket.connectToServer(serverName)
     # 如果连接成功， 表明server 已经存在，当前已经有实例在运行, 将参数发送给服务端
     if clientSocket.waitForConnected(500):
-        # print u'连接成功 arg = ', sys.argv
+        # print u'连接成功 arg = ', winOsArgv
         stream = QtCore.QTextStream(clientSocket)
-        # for i in range(0, len(sys.argv)):
-        #     stream << sys.argv[i]
+        # for i in range(0, len(winOsArgv)):
+        #     stream << winOsArgv[i]
         # 对于打开终端来说，所携带参数为第1位(打开文件的地址)，第0位为本执行程序地址
-        if len(sys.argv) > 1:
-            stream << sys.argv[1]
+        if len(winOsArgv) > 1:
+            stream << winOsArgv[1]
+            stream.setCodec('UTF-8')
             stream.flush()
             clientSocket.waitForBytesWritten()
         # close client socket
@@ -794,7 +796,7 @@ def main():
     # 一直监听端口
     localServer.listen(serverName)
     try:
-        uiMainWidget.setupUi(logMainWin, localServer, WinCommandEnCoding.getOsArgv())
+        uiMainWidget.setupUi(logMainWin, localServer, winOsArgv)
         logMainWin.show()
         sys.exit(app.exec_())
     finally:
