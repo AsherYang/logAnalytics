@@ -24,6 +24,7 @@ import WinRightKeyReg
 from RunSysCommand import RunCopyXTCLogCmd
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
+from CallFailDialog import CallFailDialog
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -136,6 +137,16 @@ class Ui_MainWidget(object):
                                            self.changeTextWrap)
         setting.addAction(self.settingTextWrapAction)
 
+        # Auto Analytics分析, 可用于分析特定关键字，输出结果
+        autoAnalytics = self.menubar.addMenu('&Auto')
+        autoAnalyticsCallFailAction = QtGui.QAction('call fail analytics', mainWindow)
+        autoAnalyticsCallFailAction.setStatusTip(_fromUtf8('掉话分析'))
+        autoAnalyticsCallFailAction.connect(autoAnalyticsCallFailAction, QtCore.SIGNAL('triggered()'),
+                                            self.showAutoAnalyticsCallFailDialog)
+        autoAnalyticsCallFailAction.setShortcut('Ctrl+Alt+F')
+        autoAnalytics.addAction(autoAnalyticsCallFailAction)
+
+        # Tools
         tools = self.menubar.addMenu('&Tools')
         # cmd tools:　copy xtc system log to D:\xxFolder
         self.toolCopyXtcSystemLogAction = QtGui.QAction('copy system log', mainWindow)
@@ -677,6 +688,10 @@ class Ui_MainWidget(object):
         if pathData and SupportFiles.hasSupportFile(pathData):
             self.setLogTxt(pathData)
         # print pathData
+
+    def showAutoAnalyticsCallFailDialog(self):
+        cfDialog = CallFailDialog()
+        cfDialog.show()
 
 
 # Load filter item
