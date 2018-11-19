@@ -10,10 +10,15 @@ Desc  : 掉话自动分析对话框
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import QSizePolicy
+from PyQt4.QtCore import QFile
 import QSettingsUtil
 from QtFontUtil import QtFontUtil
 import os
 import sys
+import zipfile
+import FileUtil
+from EncodeUtil import _translate, _fromUtf8, _translateUtf8
+import chardet
 
 
 reload(sys)
@@ -21,26 +26,12 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 # print sys.getdefaultencoding()
 
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
 
 class CallFailDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'掉话分析')
-        self.resize(500, 400)
+        self.resize(600, 400)
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
         self.mainLayout.setContentsMargins(5, 2, 5, 2)
@@ -94,10 +85,10 @@ class CallFailDialog(QtGui.QDialog):
         lastDir = self.getLastOpenDir()
         dirPath = unicode(QtGui.QFileDialog.getExistingDirectory(None, u'选择文件夹', lastDir))
         if not dirPath or not os.path.exists(dirPath):
-            self.LogTextEdit.append(u'您尚未选择日志文件路径! 请先选择日志路径。')
+            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
         logStr = u'日志路径为: ' + str(dirPath)
-        self.LogTextEdit.append(logStr)
+        self.appendLog(logStr)
         self.selectDirectoryLineEdit.setText(dirPath)
 
     # 获取QFileDialog 上次打开的路径
@@ -111,23 +102,54 @@ class CallFailDialog(QtGui.QDialog):
             lastDir = 'd://'
         return str(lastDir)
 
+    # 点击解压日志按钮
     def unZipMethod(self):
-        if not self.selectDirectoryLineEdit.text():
-            self.LogTextEdit.append(u'您尚未选择日志文件路径! 请先选择日志路径。')
+        selectDir = str(self.selectDirectoryLineEdit.text())
+        if not selectDir:
+            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
+        # self.appendLog(u'正在解压文件..')
+        # selectDir = "D:\\111111"
+        allZipFileList = FileUtil.getAllFilesByExt(selectDir, 'zip')
+        if not allZipFileList:
+            logStr = u'在目录 ' + selectDir + u' 及子目录下未找到 zip 文件'
+            self.appendLog(logStr)
+            return
+        for fileList in allZipFileList:
+            # print '>>> fileList: ' + str(_translateUtf8(fileList))
+            self.doUnzipFile(fileList)
+        self.appendLog(u'解压完成')
         pass
 
+    # 解压文件
+    def doUnzipFile(self, file_path):
+        log_txt = u'正在解压文件: ' + _translateUtf8(file_path)
+        self.appendLog(log_txt)
+        # print str(_translateUtf8(file_path))
+        dest_dir = _translateUtf8(FileUtil.getFilePathWithName(file_path))
+        zip_ref = zipfile.ZipFile(str(file_path), 'r')
+        # FileUtil.mkdirNotExist(str(dest_dir)) # zipfile 会自动创建
+        zip_ref.extractall(str(dest_dir))
+        zip_ref.close()
+
+    # 点击分析日志按钮
     def analyticsMethod(self):
-        if not self.selectDirectoryLineEdit.text():
-            self.LogTextEdit.append(u'您尚未选择日志文件路径! 请先选择日志路径。')
+        selectDir = self.selectDirectoryLineEdit.text()
+        if not selectDir:
+            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
         pass
 
+    # 点击生成文档按钮
     def genDocMethod(self):
-        if not self.selectDirectoryLineEdit.text():
-            self.LogTextEdit.append(u'您尚未选择日志文件路径! 请先选择日志路径。')
+        selectDir = self.selectDirectoryLineEdit.text()
+        if not selectDir:
+            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
         pass
+
+    def appendLog(self, logTxt):
+        self.LogTextEdit.append(_translateUtf8(logTxt))
 
     def show(self):
         self.exec_()

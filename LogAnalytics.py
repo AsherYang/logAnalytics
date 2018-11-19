@@ -25,27 +25,12 @@ from RunSysCommand import RunCopyXTCLogCmd
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
 from CallFailDialog import CallFailDialog
+from EncodeUtil import _translate, _fromUtf8
 
 reload(sys)
 # print sys.getdefaultencoding()
 sys.setdefaultencoding('utf8')
 # print sys.getdefaultencoding()
-
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-
-
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
 
 
 def resource_path(relative_path):
