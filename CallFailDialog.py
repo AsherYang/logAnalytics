@@ -18,7 +18,8 @@ import sys
 import zipfile
 import FileUtil
 from EncodeUtil import _translate, _fromUtf8, _translateUtf8
-import chardet
+import StringIO
+from ThreadUtil import ThreadUtil
 
 
 reload(sys)
@@ -48,6 +49,7 @@ class CallFailDialog(QtGui.QDialog):
         # analytics key word
         self.keywordLayout = QtGui.QHBoxLayout()
         self.keywordLineEdit = QtGui.QLineEdit()
+        self.keywordLineEdit.setPlaceholderText(u'reportCallFailLD =')
         self.keywordLineEdit.setTextMargins(10, 0, 10, 0)
         self.keywordLineEdit.setMinimumHeight(25)
         self.keywordLineEdit.setFont(QtFontUtil().getFont('Monospace', 12))
@@ -112,7 +114,7 @@ class CallFailDialog(QtGui.QDialog):
         # selectDir = "D:\\111111"
         allZipFileList = FileUtil.getAllFilesByExt(selectDir, 'zip')
         if not allZipFileList:
-            logStr = u'在目录 ' + selectDir + u' 及子目录下未找到 zip 文件'
+            logStr = u'在目录 ' + _translateUtf8(selectDir) + u' 及子目录下未找到 zip 文件'
             self.appendLog(logStr)
             return
         for fileList in allZipFileList:
@@ -134,11 +136,57 @@ class CallFailDialog(QtGui.QDialog):
 
     # 点击分析日志按钮
     def analyticsMethod(self):
-        selectDir = self.selectDirectoryLineEdit.text()
+        self.analyticsBtn.setDisabled(True)
+        # self.doAnalytics()
+        threadUtil = ThreadUtil(funcName=self.doAnalytics)
+        threadUtil.setDaemon(True)
+        threadUtil.start()
+
+    # 开始分析
+    def doAnalytics(self):
+        selectDir = str(self.selectDirectoryLineEdit.text())
         if not selectDir:
             self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
+            self.analyticsBtn.setEnabled(True)
             return
-        pass
+        analyKey = str(self.keywordLineEdit.text()) if str(
+            self.keywordLineEdit.text()).strip() else u'reportCallFailLD ='
+        filePaths = FileUtil.getAllFiles(selectDir)
+        for filePath in filePaths:
+            print _translateUtf8(filePath)
+            self.searchWordInFile(analyKey, filePath)
+        self.analyticsBtn.setEnabled(True)
+
+    # 在文件中，搜索关键字，并返回该关键字所在的行数据
+    def searchWordInFile(self, keyword, file_path):
+        if not file_path or not keyword.strip():
+            return
+        filePath = _translate('', file_path, None)
+        file = QFile(filePath)
+        if not file.open(QtCore.QIODevice.ReadOnly):
+            # todo
+            # logMsg = u'无法打开文件：' + _translateUtf8(file_path)
+            # self.appendLog(logMsg)
+            return
+        stream = QtCore.QTextStream(file)
+        stream.setCodec('UTF-8')
+        data = stream.readAll()
+        file.close()
+        dataTmp = StringIO.StringIO(data)
+        searchedText = ''
+        logMsg = u'正在检索文件：' + _translateUtf8(file_path)
+        self.appendLog(logMsg)
+        while True:
+            textLine = str(_translateUtf8(dataTmp.readline()))
+            if textLine == '':
+                logMsg = u'已检索完文件：' + _translateUtf8(file_path)
+                self.appendLog(logMsg)
+                break
+            textLineLower = textLine.lower()
+            keywordIndex = textLineLower.find(keyword.lower())
+            if keywordIndex != -1:
+                searchedText += textLine
+        return searchedText
 
     # 点击生成文档按钮
     def genDocMethod(self):

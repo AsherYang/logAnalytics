@@ -42,6 +42,15 @@ def getFileDir(filePath):
     return os.path.dirname(filePath)
 
 
+# 获取指定目录及其子目录下, 所有文件
+def getAllFiles(dir):
+    fileList = []
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            fileList.append(os.path.join(root, file))
+    return fileList
+
+
 # 获取指定目录及其子目录下，指定文件名的文件
 def getAllFilesByExt(dir, fileExt):
     fileList = []
