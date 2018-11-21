@@ -17,6 +17,7 @@ import os
 import sys
 import zipfile
 import FileUtil
+import SupportFiles
 from EncodeUtil import _translate, _fromUtf8, _translateUtf8
 import StringIO
 from ThreadUtil import ThreadUtil
@@ -75,6 +76,7 @@ class CallFailDialog(QtGui.QDialog):
         self.LogTextEdit = QtGui.QTextEdit()
         self.LogTextEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.LogTextEdit.setFont(QtFontUtil().getFont('Monospace', 12))
+        self.LogTextEdit.connect(self.LogTextEdit, QtCore.SIGNAL('appendLogSignal(QString)'), self.appendLog)
         # addLayout
         self.mainLayout.addLayout(self.selectDirectoryLayout)
         self.mainLayout.addLayout(self.keywordLayout)
@@ -138,35 +140,42 @@ class CallFailDialog(QtGui.QDialog):
     def analyticsMethod(self):
         self.analyticsBtn.setDisabled(True)
         # self.doAnalytics()
-        threadUtil = ThreadUtil(funcName=self.doAnalytics)
+        threadUtil = ThreadUtil(funcName=self.doAnalytics, log_call_back=self.emitAppendLogSignal)
         threadUtil.setDaemon(True)
         threadUtil.start()
 
     # 开始分析
-    def doAnalytics(self):
+    def doAnalytics(self, log_call_back):
         selectDir = str(self.selectDirectoryLineEdit.text())
         if not selectDir:
-            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
+            logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
+            log_call_back(logMsg)
             self.analyticsBtn.setEnabled(True)
             return
         analyKey = str(self.keywordLineEdit.text()) if str(
             self.keywordLineEdit.text()).strip() else u'reportCallFailLD ='
         filePaths = FileUtil.getAllFiles(selectDir)
         for filePath in filePaths:
-            print _translateUtf8(filePath)
-            self.searchWordInFile(analyKey, filePath)
+            if SupportFiles.hasSupportFile(filePath):
+                # print _translateUtf8(filePath)
+                self.searchWordInFile(analyKey, filePath, log_call_back)
+            # else:
+            #     logMsg = u'暂不支持文件：' + _translateUtf8(filePath)
+            #     print logMsg
         self.analyticsBtn.setEnabled(True)
+        logMsg = u'---------- 日志分析完毕 -----------'
+        log_call_back(logMsg)
 
     # 在文件中，搜索关键字，并返回该关键字所在的行数据
-    def searchWordInFile(self, keyword, file_path):
+    def searchWordInFile(self, keyword, file_path, log_call_back):
         if not file_path or not keyword.strip():
             return
         filePath = _translate('', file_path, None)
         file = QFile(filePath)
         if not file.open(QtCore.QIODevice.ReadOnly):
-            # todo
-            # logMsg = u'无法打开文件：' + _translateUtf8(file_path)
-            # self.appendLog(logMsg)
+            logMsg = u'无法打开文件：' + _translateUtf8(file_path)
+            log_call_back(logMsg)
+            file.close()
             return
         stream = QtCore.QTextStream(file)
         stream.setCodec('UTF-8')
@@ -174,13 +183,13 @@ class CallFailDialog(QtGui.QDialog):
         file.close()
         dataTmp = StringIO.StringIO(data)
         searchedText = ''
-        logMsg = u'正在检索文件：' + _translateUtf8(file_path)
-        self.appendLog(logMsg)
+        logMsg = u'正在分析文件：' + _translateUtf8(file_path)
+        log_call_back(logMsg)
         while True:
             textLine = str(_translateUtf8(dataTmp.readline()))
             if textLine == '':
-                logMsg = u'已检索完文件：' + _translateUtf8(file_path)
-                self.appendLog(logMsg)
+                # logMsg = u'已分析完文件：' + _translateUtf8(file_path)
+                # log_call_back(logMsg)
                 break
             textLineLower = textLine.lower()
             keywordIndex = textLineLower.find(keyword.lower())
@@ -192,12 +201,21 @@ class CallFailDialog(QtGui.QDialog):
     def genDocMethod(self):
         selectDir = self.selectDirectoryLineEdit.text()
         if not selectDir:
-            self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
+            logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
+            self.appendLog(logMsg)
             return
         pass
 
     def appendLog(self, logTxt):
         self.LogTextEdit.append(_translateUtf8(logTxt))
+
+    # 解决在子线程中刷新UI 的问题。' QWidget::repaint: Recursive repaint detected '
+    def appendLogSignal(self, logTxt):
+        pass
+
+    def emitAppendLogSignal(self, logTxt):
+        self.LogTextEdit.emit(QtCore.SIGNAL('appendLogSignal(QString)'), logTxt)
+        pass
 
     def show(self):
         self.exec_()
