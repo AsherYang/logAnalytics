@@ -16,7 +16,7 @@ self._dialMode              # 通话方向
 self._causeCode             # 掉话code
 self._vendorCauseCode       # 掉话vendor code
 self._logText               # 详细 log 信息(信息文本行全部信息)
-
+self._logFilePath           # log 文件目录
 """
 
 
@@ -31,6 +31,7 @@ class CallFailBean:
         self._causeCode = None
         self._vendorCauseCode = None
         self._logText = None
+        self._logFilePath = None
         pass
 
     @property
@@ -105,7 +106,13 @@ class CallFailBean:
     def logText(self, value):
         self._logText = value
 
+    @property
+    def logFilePath(self):
+        return self._logFilePath
 
+    @logFilePath.setter
+    def logFilePath(self, value):
+        self._logFilePath = value
 
 
 

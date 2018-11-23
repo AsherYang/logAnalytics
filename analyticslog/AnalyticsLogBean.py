@@ -9,6 +9,7 @@ Desc  : 日志分析实体 bean
 
 self._keyword          # 搜索log的关键字
 self._logTxt           # 搜索到的log信息
+self._logTime          # 搜索到log 行数时间
 self._filePath         # 搜索到log的文件路径
 """
 
@@ -17,6 +18,7 @@ class AnalyticsLogBean:
     def __init__(self):
         self._keyword = None
         self._logTxt = None
+        self._logTime = None
         self._filePath = None
 
     @property
@@ -34,6 +36,14 @@ class AnalyticsLogBean:
     @logTxt.setter
     def logTxt(self, value):
         self._logTxt = value
+
+    @property
+    def logTime(self):
+        return self._logTime
+
+    @logTime.setter
+    def logTime(self, value):
+        self._logTime = value
 
     @property
     def filePath(self):

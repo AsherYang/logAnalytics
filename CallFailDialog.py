@@ -13,7 +13,6 @@ import os
 import sys
 import zipfile
 import re
-import ast
 import json
 
 from PyQt4 import QtGui, QtCore
@@ -25,6 +24,7 @@ import QSettingsUtil
 import SupportFiles
 from EncodeUtil import _translate, _translateUtf8
 from QtFontUtil import QtFontUtil
+from TrayIcon import TrayIcon
 from ThreadUtil import ThreadUtil
 from analyticslog.CallFailBean import CallFailBean
 from analyticslog.AnalyticsLogBean import AnalyticsLogBean
@@ -40,7 +40,7 @@ class CallFailDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'掉话分析')
-        self.resize(600, 400)
+        self.resize(1000, 500)
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
         self.mainLayout.setContentsMargins(5, 2, 5, 2)
@@ -90,6 +90,11 @@ class CallFailDialog(QtGui.QDialog):
         self.mainLayout.addLayout(self.btnsLayout)
         self.mainLayout.addWidget(self.LogTextEdit)
         self.setLayout(self.mainLayout)
+        # 保存最后分析结果 CallFailBean 的集合
+        self.callFailList = []
+        # 显示托盘
+        self.tray = TrayIcon(parent=self, clickEnable=False)
+        self.tray.connect(self.tray, QtCore.SIGNAL('showTrayMsgSignal(QString)'), self.showTrayMsg)
 
     # 选择文件夹
     def selectDirectoryMethod(self):
@@ -146,6 +151,7 @@ class CallFailDialog(QtGui.QDialog):
     # 点击分析日志按钮
     def analyticsMethod(self):
         self.analyticsBtn.setDisabled(True)
+        self.generateDocumentBtn.setDisabled(True)
         # self.doAnalytics(log_call_back=self.emitAppendLogSignal)
         threadUtil = ThreadUtil(funcName=self.doAnalytics, log_call_back=self.emitAppendLogSignal)
         threadUtil.setDaemon(True)
@@ -164,6 +170,7 @@ class CallFailDialog(QtGui.QDialog):
             logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
             log_call_back(logMsg)
             self.analyticsBtn.setEnabled(True)
+            self.generateDocumentBtn.setEnabled(True)
             return
         analyKey = str(self.keywordLineEdit.text()) if str(
             self.keywordLineEdit.text()).strip() else u'reportCallFailLD ='
@@ -177,11 +184,14 @@ class CallFailDialog(QtGui.QDialog):
                 # print _translateUtf8(filePath)
                 searchedlogInFile = self.searchWordInFile(analyKey, filePath, log_call_back)
                 if searchedlogInFile:
+                    logTime = re.search(r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})', searchedlogInFile).group(1)
                     analyLogBean = AnalyticsLogBean()
                     analyLogBean.keyword = analyKey
                     analyLogBean.logTxt = searchedlogInFile
                     analyLogBean.filePath = filePath
-                    analyticsLogList.append(analyLogBean)
+                    analyLogBean.logTime = logTime
+                    self.filterAnalyLog2List(analyticsLogList, analyLogBean)
+                    # analyticsLogList.append(analyLogBean)
                     print searchedlogInFile
             # else:
             #     logMsg = u'暂不支持文件：' + _translateUtf8(filePath)
@@ -190,6 +200,7 @@ class CallFailDialog(QtGui.QDialog):
         baseAttrList = []
         # 再搜索基本信息
         if analyticsLogList:
+            # 先搜索基础信息
             for filePath in filePaths:
                 if SupportFiles.hasSupportFile(filePath):
                     searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
@@ -203,11 +214,41 @@ class CallFailDialog(QtGui.QDialog):
                         baseAttr.binderNumber = baseAttrJson['mId']
                         baseAttr.machineMode = baseAttrJson['devName']
                         baseAttr.osVersion = baseAttrJson['osVer']
-        # 保存最后分析结果 CallFailBean 的集合
-        callFailList = []
+                        self.filterBaseAttr2List(baseAttrList, baseAttr)
+                        # baseAttrList.append(baseAttr)
+            # 再组合数据
+            for analyLog in analyticsLogList:
+                analyLogTxt = analyLog.logTxt
+                analyLogFilePath = analyLog.filePath
+                analyLogStr = re.search(r'ReportCallFailLD\s(\{.+})', analyLogTxt).group(1)
+                analyLogJson = self.convertStr2JsonStr(analyLogStr)
+                for baseAttr in baseAttrList:
+                    binderNumber = baseAttr.binderNumber
+                    # 组合同一个绑定号数据
+                    if analyLogStr.find(binderNumber) != -1 or analyLogFilePath.find(binderNumber) != -1:
+                        callFail = CallFailBean()
+                        callFail.binderNumber = binderNumber
+                        callFail.machineMode = baseAttr.machineMode
+                        callFail.osVersion = baseAttr.osVersion
+                        callFail.failTime = analyLog.logTime
+                        callFail.voiceNetworkType = analyLogJson['voiceNetWorkTypeLD']
+                        callFail.dialMode = analyLogJson['selfDialModeLD']
+                        callFail.causeCode = analyLogJson['callFailCauseCodeLD']
+                        callFail.vendorCauseCode = analyLogJson['callFailVendorCauseLD']
+                        callFail.logText = analyLogTxt
+                        callFail.logFilePath = analyLogFilePath
+                        print '----> callFail (bindNumber: %s,  machineMode: %s, osVersion: %s, failTime: %s, ' \
+                              'voiceNetworkType: %s, dailMode: %s, causeCode: %s, vendorCause: %s, logText: %s,' \
+                              ' logFilePath: %s) '\
+                              % (callFail.binderNumber, callFail.machineMode, callFail.osVersion, callFail.failTime,
+                                 callFail.voiceNetworkType, callFail.dialMode, callFail.causeCode,
+                                 callFail.vendorCauseCode, callFail.logText, callFail.logFilePath)
+                        self.callFailList.append(callFail)
         self.analyticsBtn.setEnabled(True)
+        self.generateDocumentBtn.setEnabled(True)
         logMsg = u'---------- 日志分析完毕 -----------'
         log_call_back(logMsg)
+        self.emitTrayMsgSignal(u'日志分析完毕')
         print '------------- over ---------------'
 
     # 在文件中，搜索关键字，并返回该关键字所在的行数据
@@ -250,6 +291,7 @@ class CallFailDialog(QtGui.QDialog):
         log_call_back(msg)
 
     # 将字符串转换为json 格式
+    # http://www.runoob.com/python/python-reg-expressions.html
     def convertStr2JsonStr(self, string):
         if not string:
             return
@@ -265,6 +307,32 @@ class CallFailDialog(QtGui.QDialog):
         # print "json >>> ", jsonStr
         return jsonStr
 
+    # 过滤日志信息, 去重后添加进集合
+    def filterAnalyLog2List(self, analyticsLogList, analyLogBean):
+        if not analyLogBean:
+            return
+        if len(analyticsLogList) == 0:
+            analyticsLogList.append(analyLogBean)
+        for analyLog in analyticsLogList:
+            # logTxt 包含了整条log 信息，包括时间
+            if analyLog.logTxt == analyLogBean.logTxt:
+                continue
+            else:
+                analyticsLogList.append(analyLogBean)
+
+
+    # 过滤 baseAttr 信息， 去重后添加进集合
+    def filterBaseAttr2List(self, baseAttrList, baseAttr):
+        if not baseAttr:
+            return
+        if len(baseAttrList) == 0:
+            baseAttrList.append(baseAttr)
+        for baseAttrTmp in baseAttrList:
+            if baseAttrTmp.binderNumber == baseAttr.binderNumber:
+                continue
+            else:
+                baseAttrList.append(baseAttr)
+
     # 点击生成文档按钮
     def genDocMethod(self):
         selectDir = self.selectDirectoryLineEdit.text()
@@ -272,8 +340,70 @@ class CallFailDialog(QtGui.QDialog):
             logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
             self.appendLog(logMsg)
             return
-        pass
+        if not self.callFailList:
+            logMsg = u'请先分析LOG, 再生成文档!'
+            self.appendLog(logMsg)
+            return
+        threadUtil = ThreadUtil(funcName=self.doGenDocFile, log_call_back=self.emitAppendLogSignal)
+        threadUtil.setDaemon(True)
+        threadUtil.start()
 
+    def doGenDocFile(self, log_call_back):
+        docTitle = u'# 问题分析'
+        docSecondTitle = u'## 上层分析'
+        docTempleteBinder = u'绑定号: '
+        docTempleteMachine = u'+ 机型 ： '
+        docTempleteTime = u'+ 时间点: '
+        docTempleteNetworkType = u'+ 通话类型：'
+        docTempleteDialMode = u'+ 通话方向：'
+        docTempleteCause = u'+ 掉话code: '
+        docTempleteDetail = u'+ 详情：'
+        for callFail in self.callFailList:
+            docFilePath = callFail.logFilePath
+            binderNumber = callFail.binderNumber
+            docFilePathTmp = re.findall(r'([A-Za-z0-9_.]+)', docFilePath)
+            docFilePath.rfind(binderNumber)
+            fileDirPath = ''
+            for fileDirPathTmp in docFilePathTmp:
+                if fileDirPathTmp == binderNumber:
+                    fileDirPathIndex = docFilePath.find(binderNumber)
+                    fileDirPath = docFilePath[:fileDirPathIndex + len(binderNumber) + 1]
+                    break
+                elif fileDirPathTmp.find(binderNumber) != -1:
+                    fileDirPathIndex = docFilePath.find(binderNumber)
+                    fileDirPath = docFilePath[:fileDirPathIndex]
+                else:
+                    fileDirPath = os.path.join(str(self.selectDirectoryLineEdit.text()), binderNumber)
+            FileUtil.mkdirNotExist(fileDirPath)
+            print 'docFilePath: ', fileDirPath
+            filePath = os.path.join(fileDirPath, u'问题分析.txt')
+            docFile = open(filePath, 'a+')
+            docContentBinderNumber = str(docTempleteBinder + binderNumber).encode('utf-8')
+            docContentMachine = str(docTempleteMachine + callFail.machineMode + callFail.osVersion).encode('utf-8')
+            docContentTime = str(docTempleteTime + callFail.failTime).encode('utf-8')
+            docContentNetworkType = str(docTempleteNetworkType + callFail.voiceNetworkType).encode('utf-8')
+            docContentDialMode = str(docTempleteDialMode + callFail.dialMode).encode('utf-8')
+            docContentCause = str(docTempleteCause + callFail.vendorCauseCode).encode('utf-8')
+            docContentDetail = str(docTempleteDetail + callFail.logText).encode('utf-8')
+            docFile.write('\n' + docTitle + '\n')
+            docFile.write('\n' + docContentBinderNumber + '\n')
+            docFile.write('\n' + docSecondTitle + '\n')
+            docFile.write('\n' + docContentMachine + '\n')
+            docFile.write(docContentTime + '\n')
+            docFile.write(docContentNetworkType + '\n')
+            docFile.write(docContentDialMode + '\n')
+            docFile.write(docContentCause + '\n')
+            docFile.write(docContentDetail + '\n')
+            docFile.flush()
+            docFile.close()
+            logMsg = u'已生成文档：' + _translateUtf8(filePath)
+            log_call_back(logMsg)
+            print logMsg
+        logMsg = u'---------- 文档生成完毕 -----------'
+        log_call_back(logMsg)
+        self.emitTrayMsgSignal(u'文档生成完毕')
+
+    # 显示操作日志
     def appendLog(self, logTxt):
         self.LogTextEdit.append(_translateUtf8(logTxt))
 
@@ -283,7 +413,18 @@ class CallFailDialog(QtGui.QDialog):
 
     def emitAppendLogSignal(self, logTxt):
         self.LogTextEdit.emit(QtCore.SIGNAL('appendLogSignal(QString)'), logTxt)
+
+    # 托盘消息
+    def showTrayMsg(self, trayMsg):
+        self.tray.show()
+        # show 5 min
+        self.tray.showMsg(trayMsg)
+
+    def showTrayMsgSignal(self, trayMsg):
         pass
+
+    def emitTrayMsgSignal(self, trayMsg):
+        self.tray.emit(QtCore.SIGNAL('showTrayMsgSignal(QString)'), trayMsg)
 
     def show(self):
         self.exec_()
