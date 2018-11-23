@@ -183,22 +183,33 @@ class CallFailDialog(QtGui.QDialog):
             if SupportFiles.hasSupportFile(filePath):
                 # print _translateUtf8(filePath)
                 searchedlogInFile = self.searchWordInFile(analyKey, filePath, log_call_back)
-                if searchedlogInFile:
-                    logTime = re.search(r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})', searchedlogInFile).group(1)
+                if not searchedlogInFile:
+                    continue
+                # print '----> ', searchedlogInFile
+                # 匹配时间
+                reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
+                # 匹配以时间开头，除换行符"\n"之外的任意字符
+                reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
+                # 一个文件中可能有多个异常Log打印信息
+                searchedLogList = re.findall(reLogStr, searchedlogInFile)
+                print '===> searchedLogList: ', searchedLogList
+                for searchedLog in searchedLogList:
+                    logTime = re.search(reTimeStr, str(searchedLog)).group(1)
                     analyLogBean = AnalyticsLogBean()
                     analyLogBean.keyword = analyKey
-                    analyLogBean.logTxt = searchedlogInFile
+                    analyLogBean.logTxt = searchedLog
                     analyLogBean.filePath = filePath
                     analyLogBean.logTime = logTime
                     self.filterAnalyLog2List(analyticsLogList, analyLogBean)
                     # analyticsLogList.append(analyLogBean)
-                    print searchedlogInFile
+                    # print 'searchedlogInFile == ', searchedlogInFile
             # else:
             #     logMsg = u'暂不支持文件：' + _translateUtf8(filePath)
             #     print logMsg
         # 保存基本信息的集合
         baseAttrList = []
         # 再搜索基本信息
+        # print 'len(analyticsLogList): ', len(analyticsLogList)
         if analyticsLogList:
             # 先搜索基础信息
             for filePath in filePaths:
@@ -344,6 +355,7 @@ class CallFailDialog(QtGui.QDialog):
             logMsg = u'请先分析LOG, 再生成文档!'
             self.appendLog(logMsg)
             return
+        # self.doGenDocFile(self.emitAppendLogSignal)
         threadUtil = ThreadUtil(funcName=self.doGenDocFile, log_call_back=self.emitAppendLogSignal)
         threadUtil.setDaemon(True)
         threadUtil.start()
@@ -358,6 +370,7 @@ class CallFailDialog(QtGui.QDialog):
         docTempleteDialMode = u'+ 通话方向：'
         docTempleteCause = u'+ 掉话code: '
         docTempleteDetail = u'+ 详情：'
+        print 'callFailList len: ', len(self.callFailList)
         for callFail in self.callFailList:
             docFilePath = callFail.logFilePath
             binderNumber = callFail.binderNumber
@@ -377,18 +390,22 @@ class CallFailDialog(QtGui.QDialog):
             FileUtil.mkdirNotExist(fileDirPath)
             print 'docFilePath: ', fileDirPath
             filePath = os.path.join(fileDirPath, u'问题分析.txt')
+            hasFileExists = os.path.exists(filePath)
             docFile = open(filePath, 'a+')
             docContentBinderNumber = str(docTempleteBinder + binderNumber).encode('utf-8')
-            docContentMachine = str(docTempleteMachine + callFail.machineMode + callFail.osVersion).encode('utf-8')
+            docContentMachine = str(docTempleteMachine + callFail.machineMode + "\t" + callFail.osVersion).encode('utf-8')
             docContentTime = str(docTempleteTime + callFail.failTime).encode('utf-8')
             docContentNetworkType = str(docTempleteNetworkType + callFail.voiceNetworkType).encode('utf-8')
             docContentDialMode = str(docTempleteDialMode + callFail.dialMode).encode('utf-8')
             docContentCause = str(docTempleteCause + callFail.vendorCauseCode).encode('utf-8')
             docContentDetail = str(docTempleteDetail + callFail.logText).encode('utf-8')
-            docFile.write('\n' + docTitle + '\n')
-            docFile.write('\n' + docContentBinderNumber + '\n')
-            docFile.write('\n' + docSecondTitle + '\n')
-            docFile.write('\n' + docContentMachine + '\n')
+            if not hasFileExists:
+                docFile.write('\n' + docTitle + '\n')
+                docFile.write('\n' + docContentBinderNumber + '\n')
+                docFile.write('\n' + docSecondTitle + '\n')
+                docFile.write('\n' + docContentMachine + '\n')
+            else:
+                docFile.write('\n\n\n')
             docFile.write(docContentTime + '\n')
             docFile.write(docContentNetworkType + '\n')
             docFile.write(docContentDialMode + '\n')
