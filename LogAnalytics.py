@@ -58,6 +58,7 @@ class Ui_MainWidget(object):
         self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)),
                                                  Constants.filterConfigFileName)
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
+        mainWindow.setWindowIcon(QtGui.QIcon('img/log.png'))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))

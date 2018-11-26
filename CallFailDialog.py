@@ -40,6 +40,7 @@ class CallFailDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'掉话分析')
+        self.setWindowIcon(QtGui.QIcon('img/log.png'))
         self.resize(1000, 500)
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
