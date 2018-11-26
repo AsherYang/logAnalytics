@@ -26,22 +26,12 @@ from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
 from CallFailDialog import CallFailDialog
 from EncodeUtil import _translate, _fromUtf8
+from IconResourceUtil import resource_path
 
 reload(sys)
 # print sys.getdefaultencoding()
 sys.setdefaultencoding('utf8')
 # print sys.getdefaultencoding()
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 class Ui_MainWidget(object):
@@ -58,7 +48,7 @@ class Ui_MainWidget(object):
         self.filterConfigFilePath = os.path.join(os.path.dirname(os.path.realpath(self.sysArg0)),
                                                  Constants.filterConfigFileName)
         mainWindow.setObjectName(_fromUtf8("MainWindow"))
-        mainWindow.setWindowIcon(QtGui.QIcon('img/log.png'))
+        mainWindow.setWindowIcon(QtGui.QIcon(resource_path('img/log.png')))
         # MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(mainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))

@@ -29,6 +29,7 @@ from ThreadUtil import ThreadUtil
 from analyticslog.CallFailBean import CallFailBean
 from analyticslog.AnalyticsLogBean import AnalyticsLogBean
 from analyticslog.BaseAttrBean import BaseAttrBean
+from IconResourceUtil import resource_path
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -40,7 +41,7 @@ class CallFailDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'掉话分析')
-        self.setWindowIcon(QtGui.QIcon('img/log.png'))
+        self.setWindowIcon(QtGui.QIcon(resource_path('img/log.png')))
         self.resize(1000, 500)
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
