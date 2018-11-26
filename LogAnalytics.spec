@@ -22,10 +22,11 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [('\\img\\delete.png', 'd:\\python_demo\\qt5\\logAnalytics\\img\\delete.png', 'DATA'), 
-           ('\\img\\check.png', 'd:\\python_demo\\qt5\\logAnalytics\\img\\check.png', 'DATA')],
+           ('\\img\\check.png', 'd:\\python_demo\\qt5\\logAnalytics\\img\\check.png', 'DATA'),
+		   ('\\img\\log.png', 'd:\\python_demo\\qt5\\logAnalytics\\img\\log.png', 'DATA')],
           name='LogAnalytics',
           debug=False,
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=False )
+          console=False , icon='log.ico')
