@@ -24,7 +24,7 @@ import WinRightKeyReg
 from RunSysCommand import RunCopyXTCLogCmd
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
-from CallFailDialog import CallFailDialog
+from CallFailWindow import CallFailWindow
 from EncodeUtil import _translate, _fromUtf8
 from IconResourceUtil import resource_path
 
@@ -666,8 +666,8 @@ class Ui_MainWidget(object):
         # print pathData
 
     def showAutoAnalyticsCallFailDialog(self):
-        cfDialog = CallFailDialog()
-        cfDialog.show()
+        cfwin = CallFailWindow(self.mainwindow)
+        cfwin.show()
 
 
 # Load filter item

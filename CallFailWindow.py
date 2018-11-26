@@ -17,7 +17,7 @@ import json
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import QFile
-from PyQt4.QtGui import QSizePolicy
+from PyQt4.QtGui import QSizePolicy, QWidget
 
 import FileUtil
 import QSettingsUtil
@@ -37,11 +37,13 @@ sys.setdefaultencoding('utf8')
 # print sys.getdefaultencoding()
 
 
-class CallFailDialog(QtGui.QDialog):
+class CallFailWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
-        QtGui.QDialog.__init__(self, parent)
+        QtGui.QMainWindow.__init__(self, parent)
         self.setWindowTitle(u'掉话分析')
         self.setWindowIcon(QtGui.QIcon(resource_path('img/log.png')))
+        self.centralwidget = QWidget()
+        self.setCentralWidget(self.centralwidget)
         self.resize(1000, 500)
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
@@ -91,7 +93,7 @@ class CallFailDialog(QtGui.QDialog):
         self.mainLayout.addLayout(self.keywordLayout)
         self.mainLayout.addLayout(self.btnsLayout)
         self.mainLayout.addWidget(self.LogTextEdit)
-        self.setLayout(self.mainLayout)
+        self.centralwidget.setLayout(self.mainLayout)
         # 保存最后分析结果 CallFailBean 的集合
         self.callFailList = []
         # 显示托盘
@@ -211,7 +213,7 @@ class CallFailDialog(QtGui.QDialog):
         # 保存基本信息的集合
         baseAttrList = []
         # 再搜索基本信息
-        # print 'len(analyticsLogList): ', len(analyticsLogList)
+        print 'len(analyticsLogList): ', len(analyticsLogList)
         if analyticsLogList:
             # 先搜索基础信息
             for filePath in filePaths:
@@ -229,6 +231,8 @@ class CallFailDialog(QtGui.QDialog):
                         baseAttr.osVersion = baseAttrJson['osVer']
                         self.filterBaseAttr2List(baseAttrList, baseAttr)
                         # baseAttrList.append(baseAttr)
+            print 'len(analyticsLogList): ', len(analyticsLogList)
+            print 'len(baseAttrList): ', len(baseAttrList)
             # 再组合数据
             for analyLog in analyticsLogList:
                 analyLogTxt = analyLog.logTxt
@@ -418,6 +422,8 @@ class CallFailDialog(QtGui.QDialog):
             logMsg = u'已生成文档：' + _translateUtf8(filePath)
             log_call_back(logMsg)
             print logMsg
+        # 清空本次callFail
+        self.callFailList = []
         logMsg = u'---------- 文档生成完毕 -----------'
         log_call_back(logMsg)
         self.emitTrayMsgSignal(u'文档生成完毕')
@@ -445,5 +451,8 @@ class CallFailDialog(QtGui.QDialog):
     def emitTrayMsgSignal(self, trayMsg):
         self.tray.emit(QtCore.SIGNAL('showTrayMsgSignal(QString)'), trayMsg)
 
-    def show(self):
-        self.exec_()
+if __name__ == '__main__':
+    app = QtGui.QApplication(sys.argv)
+    callFailWin = CallFailWindow()
+    callFailWin.show()
+    sys.exit(app.exec_())
