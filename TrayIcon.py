@@ -31,7 +31,7 @@ class TrayIcon(QSystemTrayIcon):
     def __init__(self, parent=None, clickEnable=True):
         QtGui.QSystemTrayIcon.__init__(self, parent)
         # 设置关闭所有窗口,也不关闭应用程序
-        QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
+        # QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
         # 设置系统托盘图标
         self.setIcon(QIcon(resource_path('img/log.png')))
         # 托盘能否被点击
