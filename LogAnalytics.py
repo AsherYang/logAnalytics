@@ -77,13 +77,13 @@ class Ui_MainWidget(object):
 
         setting = self.menubar.addMenu('&Setting')
         settingLogAnalyticsWinRightKeyAction = QtGui.QAction('set log key', mainWindow)
-        settingLogAnalyticsWinRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
+        settingLogAnalyticsWinRightKeyAction.setStatusTip(_fromUtf8('注册LogAnalytics到右键'))
         settingLogAnalyticsWinRightKeyAction.connect(settingLogAnalyticsWinRightKeyAction, QtCore.SIGNAL('triggered()'),
                                                      self.setLogAnalyticsWinRightKey)
         setting.addAction(settingLogAnalyticsWinRightKeyAction)
 
         settingCmdRightKeyAction = QtGui.QAction('set cmd key', mainWindow)
-        settingCmdRightKeyAction.setStatusTip(_fromUtf8('设置右键打开方式'))
+        settingCmdRightKeyAction.setStatusTip(_fromUtf8('注册cmdPrompt到右键'))
         settingCmdRightKeyAction.connect(settingCmdRightKeyAction, QtCore.SIGNAL('triggered()'),
                                          self.setCmdWinRightKey)
         setting.addAction(settingCmdRightKeyAction)
