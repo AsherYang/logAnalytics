@@ -332,17 +332,8 @@ class CallFailWindow(QtGui.QMainWindow):
             analyticsLogList.append(analyLogBean)
             return
         if not self.hasListContainLog(analyticsLogList, analyLogBean):
-            print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
+            # print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
             analyticsLogList.append(analyLogBean)
-        # for analyLog in analyticsLogList:
-        #     # logTxt 包含了整条log 信息，包括时间
-        #     if analyLog.logTxt == analyLogBean.logTxt:
-        #         continue
-        #     elif analyLogBean in analyticsLogList:
-        #         continue
-        #     else:
-        #         print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
-        #         analyticsLogList.append(analyLogBean)
 
     # 集合中是否已经包含了重复LOG
     def hasListContainLog(self, analyticsLogList, analyLogBean):
@@ -361,16 +352,8 @@ class CallFailWindow(QtGui.QMainWindow):
             baseAttrList.append(baseAttr)
             return
         if not self.hasListContainAttr(baseAttrList, baseAttr):
-            print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
+            # print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
             baseAttrList.append(baseAttr)
-        # for baseAttrTmp in baseAttrList:
-        #     if baseAttrTmp.binderNumber == baseAttr.binderNumber:
-        #         continue
-        #     elif baseAttr in baseAttrList:
-        #         continue
-        #     else:
-        #         print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
-        #         baseAttrList.append(baseAttr)
 
     # 集合中是否已经包含了重复attr属性
     def hasListContainAttr(self, baseAttrList, baseAttr):
