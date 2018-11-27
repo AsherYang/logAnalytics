@@ -52,3 +52,7 @@ class AnalyticsLogBean:
     @filePath.setter
     def filePath(self, value):
         self._filePath = value
+
+    # toString
+    def __str__(self):
+        return '_logTxt: %s' % self.logTxt

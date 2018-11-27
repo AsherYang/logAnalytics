@@ -196,7 +196,7 @@ class CallFailWindow(QtGui.QMainWindow):
                 reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
                 # 一个文件中可能有多个异常Log打印信息
                 searchedLogList = re.findall(reLogStr, searchedlogInFile)
-                print '===> searchedLogList: ', searchedLogList
+                # print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, filePath)
                 for searchedLog in searchedLogList:
                     logTime = re.search(reTimeStr, str(searchedLog)).group(1)
                     analyLogBean = AnalyticsLogBean()
@@ -213,13 +213,13 @@ class CallFailWindow(QtGui.QMainWindow):
         # 保存基本信息的集合
         baseAttrList = []
         # 再搜索基本信息
-        print 'len(analyticsLogList): ', len(analyticsLogList)
+        # print 'len(analyticsLogList): ', len(analyticsLogList)
         if analyticsLogList:
             # 先搜索基础信息
             for filePath in filePaths:
                 if SupportFiles.hasSupportFile(filePath):
                     searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
-                    print searchedBaseAttr
+                    # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
                     if searchedBaseAttr:
                         baseAttrStr = re.search(r'BaseAttr(\{.+})', searchedBaseAttr).group(1)
                         # print '==> baseAttrJsonStr: ', baseAttrStr
@@ -330,13 +330,28 @@ class CallFailWindow(QtGui.QMainWindow):
             return
         if len(analyticsLogList) == 0:
             analyticsLogList.append(analyLogBean)
-        for analyLog in analyticsLogList:
-            # logTxt 包含了整条log 信息，包括时间
-            if analyLog.logTxt == analyLogBean.logTxt:
-                continue
-            else:
-                analyticsLogList.append(analyLogBean)
+            return
+        if not self.hasListContainLog(analyticsLogList, analyLogBean):
+            print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
+            analyticsLogList.append(analyLogBean)
+        # for analyLog in analyticsLogList:
+        #     # logTxt 包含了整条log 信息，包括时间
+        #     if analyLog.logTxt == analyLogBean.logTxt:
+        #         continue
+        #     elif analyLogBean in analyticsLogList:
+        #         continue
+        #     else:
+        #         print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
+        #         analyticsLogList.append(analyLogBean)
 
+    # 集合中是否已经包含了重复LOG
+    def hasListContainLog(self, analyticsLogList, analyLogBean):
+        for analyLog in analyticsLogList:
+            if analyLog.logTxt == analyLogBean.logTxt:
+                return True
+            elif analyLogBean in analyticsLogList:
+                return True
+        return False
 
     # 过滤 baseAttr 信息， 去重后添加进集合
     def filterBaseAttr2List(self, baseAttrList, baseAttr):
@@ -344,11 +359,27 @@ class CallFailWindow(QtGui.QMainWindow):
             return
         if len(baseAttrList) == 0:
             baseAttrList.append(baseAttr)
+            return
+        if not self.hasListContainAttr(baseAttrList, baseAttr):
+            print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
+            baseAttrList.append(baseAttr)
+        # for baseAttrTmp in baseAttrList:
+        #     if baseAttrTmp.binderNumber == baseAttr.binderNumber:
+        #         continue
+        #     elif baseAttr in baseAttrList:
+        #         continue
+        #     else:
+        #         print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
+        #         baseAttrList.append(baseAttr)
+
+    # 集合中是否已经包含了重复attr属性
+    def hasListContainAttr(self, baseAttrList, baseAttr):
         for baseAttrTmp in baseAttrList:
             if baseAttrTmp.binderNumber == baseAttr.binderNumber:
-                continue
-            else:
-                baseAttrList.append(baseAttr)
+                return True
+            elif baseAttr in baseAttrList:
+                return True
+        return False
 
     # 点击生成文档按钮
     def genDocMethod(self):

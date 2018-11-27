@@ -37,4 +37,8 @@ class BaseAttrBean:
 
     @osVersion.setter
     def osVersion(self, value):
-        return self._osVersion
+        self._osVersion = value
+
+    # toString
+    def __str__(self):
+        return 'binderNumber: %s' % self.binderNumber
