@@ -30,6 +30,8 @@ from analyticslog.CallFailBean import CallFailBean
 from analyticslog.AnalyticsLogBean import AnalyticsLogBean
 from analyticslog.BaseAttrBean import BaseAttrBean
 from IconResourceUtil import resource_path
+from DownloadLogByWeb import DownloadLogByWeb
+import xlrd
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -58,6 +60,17 @@ class CallFailWindow(QtGui.QMainWindow):
         self.selectDirectoryBtn.connect(self.selectDirectoryBtn, QtCore.SIGNAL('clicked()'), self.selectDirectoryMethod)
         self.selectDirectoryLayout.addWidget(self.selectDirectoryBtn)
         self.selectDirectoryLayout.addWidget(self.selectDirectoryLineEdit)
+        # download the log [from http://172.28.199.58/watch/index_prod.html#/watchda_web/logCollection]
+        self.downloadLogLayout = QtGui.QHBoxLayout()
+        self.dlBinderNumberLineEdit = QtGui.QLineEdit()
+        self.dlBinderNumberLineEdit.setTextMargins(10, 0, 10, 0)
+        self.dlBinderNumberLineEdit.setMinimumHeight(25)
+        self.dlBinderNumberLineEdit.setFont(QtFontUtil().getFont('Monospace', 12))
+        self.dlImportBinderNumberBtn = QtGui.QPushButton(u'导入绑定号')
+        self.dlImportBinderNumberBtn.connect(self.dlImportBinderNumberBtn, QtCore.SIGNAL('clicked()'),
+                                             self.dlImportBinderNumberMethod)
+        self.downloadLogLayout.addWidget(self.dlImportBinderNumberBtn)
+        self.downloadLogLayout.addWidget(self.dlBinderNumberLineEdit)
         # analytics key word
         self.keywordLayout = QtGui.QHBoxLayout()
         self.keywordLineEdit = QtGui.QLineEdit()
@@ -71,15 +84,18 @@ class CallFailWindow(QtGui.QMainWindow):
         self.keywordLayout.addWidget(self.keywordLineEdit)
         # operate buttons
         self.btnsLayout = QtGui.QHBoxLayout()
+        self.downloadLogBtn = QtGui.QPushButton(u'下载日志')
         self.unzipBtn = QtGui.QPushButton(u'解压日志')
         self.analyticsBtn = QtGui.QPushButton(u'开始分析')
         self.generateDocumentBtn = QtGui.QPushButton(u'生成文档')
         self.unzipBtn.setMinimumHeight(25)
         self.analyticsBtn.setMinimumHeight(25)
         self.generateDocumentBtn.setMinimumHeight(25)
+        self.downloadLogBtn.connect(self.downloadLogBtn,  QtCore.SIGNAL('clicked()'), self.downloadLogMethod)
         self.unzipBtn.connect(self.unzipBtn,  QtCore.SIGNAL('clicked()'), self.unZipMethod)
         self.analyticsBtn.connect(self.analyticsBtn,  QtCore.SIGNAL('clicked()'), self.analyticsMethod)
         self.generateDocumentBtn.connect(self.generateDocumentBtn,  QtCore.SIGNAL('clicked()'), self.genDocMethod)
+        self.btnsLayout.addWidget(self.downloadLogBtn)
         self.btnsLayout.addWidget(self.unzipBtn)
         self.btnsLayout.addWidget(self.analyticsBtn)
         self.btnsLayout.addWidget(self.generateDocumentBtn)
@@ -90,12 +106,15 @@ class CallFailWindow(QtGui.QMainWindow):
         self.LogTextEdit.connect(self.LogTextEdit, QtCore.SIGNAL('appendLogSignal(QString)'), self.appendLog)
         # addLayout
         self.mainLayout.addLayout(self.selectDirectoryLayout)
+        self.mainLayout.addLayout(self.downloadLogLayout)
         self.mainLayout.addLayout(self.keywordLayout)
         self.mainLayout.addLayout(self.btnsLayout)
         self.mainLayout.addWidget(self.LogTextEdit)
         self.centralwidget.setLayout(self.mainLayout)
         # 保存最后分析结果 CallFailBean 的集合
         self.callFailList = []
+        # 保存从excel 导入的绑定号集合
+        self.binderNumberList = []
         # 显示托盘
         self.tray = TrayIcon(parent=self, clickEnable=False)
         self.tray.connect(self.tray, QtCore.SIGNAL('showTrayMsgSignal(QString)'), self.showTrayMsg)
@@ -122,35 +141,84 @@ class CallFailWindow(QtGui.QMainWindow):
             lastDir = 'd://'
         return str(lastDir)
 
-    # 点击解压日志按钮
-    def unZipMethod(self):
+    # download log. load binder number(下载日志时，需要提前导入绑定号)
+    # 操作excel 数据 https://www.cnblogs.com/lhj588/archive/2012/01/06/2314181.html
+    def dlImportBinderNumberMethod(self):
+        filePath = unicode(QtGui.QFileDialog.getOpenFileName(
+            None, 'Select file', self.getLastOpenDir(), 'binder_number(*.xls *.xlsx)'))
+        if not filePath:
+            return
+        # print 'binderNumberFilePath: ', filePath
+        binderNumberListStr = ''
+        try:
+            data = xlrd.open_workbook(filePath)
+            binderNumberTable = data.sheets()[0]
+            # print 'table row: ', binderNumberTable.nrows
+            # print 'table col: ', binderNumberTable.ncols
+            for i in range(binderNumberTable.ncols):
+                binderNumberColList = binderNumberTable.col_values(i)
+                for binderNumber in binderNumberColList:
+                    if binderNumber not in self.binderNumberList:
+                        self.binderNumberList.append(binderNumber)
+                        binderNumberListStr += (binderNumber + '|')
+                # print 'table col: ', binderNumberTable.col_values(i)
+                # print 'table row: ', binderNumberTable.row_values(i)
+        except Exception as e:
+            self.binderNumberList = []
+            raise e
+        print 'binderNumberList: ', self.binderNumberList
+        self.dlBinderNumberLineEdit.setText(binderNumberListStr)
+
+    # 点击下载日志按钮，从服务器[http://172.28.199.58/watch/index_prod.html#/watchda_web/logCollection]下载日志
+    def downloadLogMethod(self):
         selectDir = str(self.selectDirectoryLineEdit.text())
         if not selectDir:
             self.appendLog(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
-        # self.appendLog(u'正在解压文件..')
-        # selectDir = "D:\\111111"
+        importedBinderNumbers = str(self.dlBinderNumberLineEdit.text())
+        if not importedBinderNumbers:
+            self.appendLog(u'请导入需要下载日志的绑定号!')
+            return
+        # self.doDownloadLog(log_call_back=self.emitAppendLogSignal)
+        threadUtil = ThreadUtil(funcName=self.doDownloadLog, log_call_back=self.emitAppendLogSignal)
+        threadUtil.setDaemon(True)
+        threadUtil.start()
+
+    # 开始下载日志
+    def doDownloadLog(self, log_call_back):
+        dlLogByWeb = DownloadLogByWeb()
+        dlLogByWeb.login()
+        dlLogByWeb.setBinderNumberList(self.binderNumberList)
+        dlLogByWeb.downloadLog()
+
+    # 点击解压日志按钮
+    def unZipMethod(self):
+        # self.doUnzipFile(log_call_back=self.emitAppendLogSignal)
+        threadUtil = ThreadUtil(funcName=self.doUnzipFile, log_call_back=self.emitAppendLogSignal)
+        threadUtil.setDaemon(True)
+        threadUtil.start()
+
+    # 解压文件
+    def doUnzipFile(self, log_call_back):
+        selectDir = str(self.selectDirectoryLineEdit.text())
+        if not selectDir:
+            log_call_back(u'您尚未选择日志文件路径! 请先选择日志路径。')
+            return
         allZipFileList = FileUtil.getAllFilesByExt(selectDir, 'zip')
         if not allZipFileList:
             logStr = u'在目录 ' + _translateUtf8(selectDir) + u' 及子目录下未找到 zip 文件'
-            self.appendLog(logStr)
+            log_call_back(logStr)
             return
-        for fileList in allZipFileList:
-            # print '>>> fileList: ' + str(_translateUtf8(fileList))
-            self.doUnzipFile(fileList)
-        self.appendLog(u'解压完成')
-        pass
-
-    # 解压文件
-    def doUnzipFile(self, file_path):
-        log_txt = u'正在解压文件: ' + _translateUtf8(file_path)
-        self.appendLog(log_txt)
-        # print str(_translateUtf8(file_path))
-        dest_dir = _translateUtf8(FileUtil.getFilePathWithName(file_path))
-        zip_ref = zipfile.ZipFile(str(file_path), 'r')
-        # FileUtil.mkdirNotExist(str(dest_dir)) # zipfile 会自动创建
-        zip_ref.extractall(str(dest_dir))
-        zip_ref.close()
+        for file_path in allZipFileList:
+            log_txt = u'正在解压文件: ' + _translateUtf8(file_path)
+            log_call_back(log_txt)
+            # print str(_translateUtf8(file_path))
+            dest_dir = _translateUtf8(FileUtil.getFilePathWithName(file_path))
+            zip_ref = zipfile.ZipFile(str(file_path), 'r')
+            # FileUtil.mkdirNotExist(str(dest_dir)) # zipfile 会自动创建
+            zip_ref.extractall(str(dest_dir))
+            zip_ref.close()
+        log_call_back(u'解压完成')
 
     # 点击分析日志按钮
     def analyticsMethod(self):
