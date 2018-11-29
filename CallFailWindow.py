@@ -118,6 +118,8 @@ class CallFailWindow(QtGui.QMainWindow):
         # 显示托盘
         self.tray = TrayIcon(parent=self, clickEnable=False)
         self.tray.connect(self.tray, QtCore.SIGNAL('showTrayMsgSignal(QString)'), self.showTrayMsg)
+        # TODO 功能暂未实现，先屏蔽处理
+        # self.downloadLogBtn.setDisabled(True)
 
     # 选择文件夹
     def selectDirectoryMethod(self):
@@ -189,6 +191,7 @@ class CallFailWindow(QtGui.QMainWindow):
         dlLogByWeb = DownloadLogByWeb()
         dlLogByWeb.login()
         dlLogByWeb.setBinderNumberList(self.binderNumberList)
+        dlLogByWeb.setCallBack(log_call_back)
         dlLogByWeb.downloadLog()
 
     # 点击解压日志按钮

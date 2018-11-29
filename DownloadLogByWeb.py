@@ -19,15 +19,18 @@ USER_PWD = r'123456'
 
 class DownloadLogByWeb:
     def __init__(self):
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--headless')
+        # chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument('--headless')
         # self.driver = webdriver.Chrome(CHROME_DRIVER_PATH, chrome_options=chrome_options)
         self.driver = webdriver.Chrome(CHROME_DRIVER_PATH)
         self.driver.get(XTC_CALL_FAIL_LOG_URL)
         self.user_name = USER_NAME
         self.password = USER_PWD
         self.binder_number_list = []
-        pass
+        self.call_back = None
+
+    def setCallBack(self, call_back):
+        self.call_back = call_back
 
     def setLoginInfo(self, userName, password):
         self.user_name = userName
@@ -72,32 +75,32 @@ class DownloadLogByWeb:
         time.sleep(3)
         if not self.binder_number_list:
             return
+        # print 'len(binder_number_list): ', len(self.binder_number_list)
         for binderNumber in self.binder_number_list:
             self.doDownloadSingleLog(binderNumber)
 
     # 单个LOG下载
     def doDownloadSingleLog(self, binder_number):
+        strTmp = u'请开始下载: ' + binder_number
+        self.doCallBack(strTmp)
         driver = self.driver
         inputBinderCssSelect = r'#bandNumberInput'
         searchBinderBtnCssSelect = r'div.search-btn.btn.lime-btn.inline-block'
-        openBtnCssSelect = r'div.float-right.open > div.open-unopen > i.icon'
         try:
             inputBinderElement = WebDriverWait(driver, 10).until(lambda driver: driver.find_elements_by_css_selector(inputBinderCssSelect))
             searchBinderBtnElement = WebDriverWait(driver, 10).until(lambda driver: driver.find_elements_by_css_selector(searchBinderBtnCssSelect))
             inputBinderElement[0].clear()
             inputBinderElement[0].send_keys(binder_number)
             searchBinderBtnElement[0].click()
-            for i in range(10):
-                openBtnBtnElement = WebDriverWait(driver, 10).until(lambda driver: driver.find_elements_by_css_selector(openBtnCssSelect))
-                openBtnBtnElement[0].click()
-                downloadBtnCssSelect = 'tbody > tr:nth-of-type(%s) > td.has-more > a > img.down-disable' % i
-                downloadBtnBtnElement = WebDriverWait(driver, 10).until(lambda driver: driver.find_elements_by_css_selector(downloadBtnCssSelect))
-                downloadBtnBtnElement[0].click()
-                print '---> i', i
-            time.sleep(3)
+            time.sleep(10)
         except Exception as e:
             raise e
         pass
+
+    # 回调函数
+    def doCallBack(self, msg):
+        if self.call_back:
+            self.call_back(msg)
 
 
 if __name__ == '__main__':
