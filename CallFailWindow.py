@@ -189,9 +189,9 @@ class CallFailWindow(QtGui.QMainWindow):
     # 开始下载日志
     def doDownloadLog(self, log_call_back):
         dlLogByWeb = DownloadLogByWeb()
+        dlLogByWeb.setCallBack(log_call_back)
         dlLogByWeb.login()
         dlLogByWeb.setBinderNumberList(self.binderNumberList)
-        dlLogByWeb.setCallBack(log_call_back)
         dlLogByWeb.downloadLog()
 
     # 点击解压日志按钮

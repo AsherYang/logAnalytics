@@ -21,8 +21,8 @@ class DownloadLogByWeb:
     def __init__(self):
         # chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_argument('--headless')
-        # self.driver = webdriver.Chrome(CHROME_DRIVER_PATH, chrome_options=chrome_options)
-        self.driver = webdriver.Chrome(CHROME_DRIVER_PATH)
+        # self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH, chrome_options=chrome_options)
+        self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
         self.driver.get(XTC_CALL_FAIL_LOG_URL)
         self.user_name = USER_NAME
         self.password = USER_PWD
@@ -81,8 +81,8 @@ class DownloadLogByWeb:
 
     # 单个LOG下载
     def doDownloadSingleLog(self, binder_number):
-        strTmp = u'请开始下载: ' + binder_number
-        self.doCallBack(strTmp)
+        # strTmp = u'请开始下载: ' + binder_number
+        # self.doCallBack(strTmp)
         driver = self.driver
         inputBinderCssSelect = r'#bandNumberInput'
         searchBinderBtnCssSelect = r'div.search-btn.btn.lime-btn.inline-block'
