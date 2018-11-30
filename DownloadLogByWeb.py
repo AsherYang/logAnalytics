@@ -6,6 +6,9 @@ Author: AsherYang
 Email : ouyangfan1991@gmail.com
 Date  : 2018/11/27
 Desc  : 通过浏览器下载LOG 日志
+
+pyInstaller 打包时遇到console=False无法启动chrome的问题的解决方案
+https://stackoverflow.com/questions/46639052/pyinstaller-one-file-no-console-does-not-work-fatal-error
 """
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -19,10 +22,15 @@ USER_PWD = r'123456'
 
 class DownloadLogByWeb:
     def __init__(self):
-        # chrome_options = webdriver.ChromeOptions()
+        chrome_options = webdriver.ChromeOptions()
+        # 不显示chrome 浏览器，即无界面模式
         # chrome_options.add_argument('--headless')
-        # self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH, chrome_options=chrome_options)
-        self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
+        # 0 为禁止弹出窗口， 指定下载路径为 E:\call_fail_log
+        # https://www.cnblogs.com/caoj/p/7815837.html
+        chrome_prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': 'E:\\call_fail_log'}
+        chrome_options.add_experimental_option('prefs', chrome_prefs)
+        self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH, chrome_options=chrome_options)
+        # self.driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
         self.driver.get(XTC_CALL_FAIL_LOG_URL)
         self.user_name = USER_NAME
         self.password = USER_PWD
