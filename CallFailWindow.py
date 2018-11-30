@@ -88,17 +88,21 @@ class CallFailWindow(QtGui.QMainWindow):
         self.unzipBtn = QtGui.QPushButton(u'解压日志')
         self.analyticsBtn = QtGui.QPushButton(u'开始分析')
         self.generateDocumentBtn = QtGui.QPushButton(u'生成文档')
+        self.openDirBtn = QtGui.QPushButton(u'打开文件夹')
         self.unzipBtn.setMinimumHeight(25)
         self.analyticsBtn.setMinimumHeight(25)
         self.generateDocumentBtn.setMinimumHeight(25)
+        self.openDirBtn.setMinimumHeight(25)
         self.downloadLogBtn.connect(self.downloadLogBtn,  QtCore.SIGNAL('clicked()'), self.downloadLogMethod)
         self.unzipBtn.connect(self.unzipBtn,  QtCore.SIGNAL('clicked()'), self.unZipMethod)
         self.analyticsBtn.connect(self.analyticsBtn,  QtCore.SIGNAL('clicked()'), self.analyticsMethod)
         self.generateDocumentBtn.connect(self.generateDocumentBtn,  QtCore.SIGNAL('clicked()'), self.genDocMethod)
+        self.openDirBtn.connect(self.openDirBtn,  QtCore.SIGNAL('clicked()'), self.openDirMethod)
         self.btnsLayout.addWidget(self.downloadLogBtn)
         self.btnsLayout.addWidget(self.unzipBtn)
         self.btnsLayout.addWidget(self.analyticsBtn)
         self.btnsLayout.addWidget(self.generateDocumentBtn)
+        self.btnsLayout.addWidget(self.openDirBtn)
         # show log
         self.LogTextEdit = QtGui.QTextEdit()
         self.LogTextEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -512,6 +516,15 @@ class CallFailWindow(QtGui.QMainWindow):
         logMsg = u'---------- 文档生成完毕 -----------'
         log_call_back(logMsg)
         self.emitTrayMsgSignal(u'文档生成完毕')
+
+    # 打开文件夹
+    def openDirMethod(self):
+        selectDir = self.selectDirectoryLineEdit.text()
+        if not selectDir:
+            logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
+            self.appendLog(logMsg)
+            return
+        os.startfile(selectDir)
 
     # 显示操作日志
     def appendLog(self, logTxt):
