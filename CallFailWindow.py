@@ -259,7 +259,7 @@ class CallFailWindow(QtGui.QMainWindow):
         analyticsLogList = []
         # 搜索关键字信息
         for filePath in filePaths:
-            if SupportFiles.hasSupportFile(filePath):
+            if SupportFiles.hasSupportFile(filePath) and not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
                 # print _translateUtf8(filePath)
                 searchedlogInFile = self.searchWordInFile(analyKey, filePath, log_call_back)
                 if not searchedlogInFile:
@@ -292,7 +292,7 @@ class CallFailWindow(QtGui.QMainWindow):
         if analyticsLogList:
             # 先搜索基础信息
             for filePath in filePaths:
-                if SupportFiles.hasSupportFile(filePath):
+                if SupportFiles.hasSupportFile(filePath) and not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
                     searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
                     # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
                     if searchedBaseAttr:
@@ -525,6 +525,10 @@ class CallFailWindow(QtGui.QMainWindow):
             self.appendLog(logMsg)
             return
         os.startfile(selectDir)
+
+    # 需要去除包含以下关键字的路径
+    def removeThePathKeys(self):
+        return ["traces", "bugreport", "diag_logs"]
 
     # 显示操作日志
     def appendLog(self, logTxt):
