@@ -122,8 +122,6 @@ class CallFailWindow(QtGui.QMainWindow):
         # 显示托盘
         self.tray = TrayIcon(parent=self, clickEnable=False)
         self.tray.connect(self.tray, QtCore.SIGNAL('showTrayMsgSignal(QString)'), self.showTrayMsg)
-        # TODO 功能暂未实现，先屏蔽处理
-        # self.downloadLogBtn.setDisabled(True)
 
     # 选择文件夹
     def selectDirectoryMethod(self):
@@ -295,17 +293,14 @@ class CallFailWindow(QtGui.QMainWindow):
                 if SupportFiles.hasSupportFile(filePath) and not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
                     searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
                     # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
-                    if searchedBaseAttr:
-                        baseAttrStr = re.search(r'BaseAttr(\{.+})', searchedBaseAttr).group(1)
-                        # print '==> baseAttrJsonStr: ', baseAttrStr
-                        baseAttrJson = self.convertStr2JsonStr(baseAttrStr)
-                        # print '==> baseAttrJsonDict: ', baseAttrJson
+                    baseAttrJson = self.filterBaseAttr2Json(searchedBaseAttr)
+                    # print '==> baseAttrJsonDict: ', baseAttrJson
+                    if baseAttrJson:
                         baseAttr = BaseAttrBean()
                         baseAttr.binderNumber = baseAttrJson['mId']
                         baseAttr.machineMode = baseAttrJson['devName']
                         baseAttr.osVersion = baseAttrJson['osVer']
                         self.filterBaseAttr2List(baseAttrList, baseAttr)
-                        # baseAttrList.append(baseAttr)
             print 'len(analyticsLogList): ', len(analyticsLogList)
             print 'len(baseAttrList): ', len(baseAttrList)
             # 再组合数据
@@ -314,6 +309,8 @@ class CallFailWindow(QtGui.QMainWindow):
                 analyLogFilePath = analyLog.filePath
                 analyLogStr = re.search(r'ReportCallFailLD\s(\{.+})', analyLogTxt).group(1)
                 analyLogJson = self.convertStr2JsonStr(analyLogStr)
+                if not analyLogJson:
+                    continue
                 for baseAttr in baseAttrList:
                     binderNumber = baseAttr.binderNumber
                     # 组合同一个绑定号数据
@@ -386,7 +383,7 @@ class CallFailWindow(QtGui.QMainWindow):
     # http://www.runoob.com/python/python-reg-expressions.html
     def convertStr2JsonStr(self, string):
         if not string:
-            return
+            return None
         string = string.replace("\'", "\"")
         strList = re.findall(r'([A-Za-z0-9]+=)', string)
         for strTmp in strList:
@@ -395,7 +392,11 @@ class CallFailWindow(QtGui.QMainWindow):
         string = string.replace("=", ":")
         # print '---> string: ', string
         # print '---> strList: ', strList
-        jsonStr = json.loads(string)
+        jsonStr = None
+        try:
+            jsonStr = json.loads(string)
+        except Exception as e:
+            pass
         # print "json >>> ", jsonStr
         return jsonStr
 
@@ -438,6 +439,19 @@ class CallFailWindow(QtGui.QMainWindow):
             elif baseAttr in baseAttrList:
                 return True
         return False
+
+    # 找出有效的基础信息，进行json 转换
+    def filterBaseAttr2Json(self, searchedBaseAttr):
+        if not searchedBaseAttr:
+            return None
+        baseAttrJson = None
+        baseAttrList = re.findall(r'BaseAttr(\{.+})', searchedBaseAttr)
+        for baseAttrStr in baseAttrList:
+            baseAttrJson = self.convertStr2JsonStr(baseAttrStr)
+            # print '==> baseAttrJson: ', baseAttrJson
+            if baseAttrJson:
+                return baseAttrJson
+        return baseAttrJson
 
     # 点击生成文档按钮
     def genDocMethod(self):
