@@ -32,6 +32,7 @@ from analyticslog.BaseAttrBean import BaseAttrBean
 from IconResourceUtil import resource_path
 from DownloadLogByWeb import DownloadLogByWeb
 import xlrd
+import threading
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -96,6 +97,7 @@ class CallFailWindow(QtGui.QMainWindow):
         self.downloadLogBtn.connect(self.downloadLogBtn,  QtCore.SIGNAL('clicked()'), self.downloadLogMethod)
         self.unzipBtn.connect(self.unzipBtn,  QtCore.SIGNAL('clicked()'), self.unZipMethod)
         self.analyticsBtn.connect(self.analyticsBtn,  QtCore.SIGNAL('clicked()'), self.analyticsMethod)
+        self.analyticsBtn.connect(self.analyticsBtn, QtCore.SIGNAL('combineLogSignal()'), self.combineLogWithAttr)
         self.generateDocumentBtn.connect(self.generateDocumentBtn,  QtCore.SIGNAL('clicked()'), self.genDocMethod)
         self.openDirBtn.connect(self.openDirBtn,  QtCore.SIGNAL('clicked()'), self.openDirMethod)
         self.btnsLayout.addWidget(self.downloadLogBtn)
@@ -115,6 +117,17 @@ class CallFailWindow(QtGui.QMainWindow):
         self.mainLayout.addLayout(self.btnsLayout)
         self.mainLayout.addWidget(self.LogTextEdit)
         self.centralwidget.setLayout(self.mainLayout)
+        # 优化文件数据分析性能，已分组形式进行, 这两个变量记录总共需要分析的分组数量，以及已经分析的组数
+        self.analyticsGroupTotalSize = 0
+        self.processedGroupSize = 0
+        self.processedGroupLock = threading.Lock()
+        # 保存分析的日志信息集合
+        self.analyticsLogList = []
+        # 保存基本信息的集合
+        self.baseAttrList = []
+        # 多线程中进行集合过滤的锁
+        self.filterLogLock = threading.Lock()
+        self.filterAttrLock = threading.Lock()
         # 保存最后分析结果 CallFailBean 的集合
         self.callFailList = []
         # 保存从excel 导入的绑定号集合
@@ -229,89 +242,120 @@ class CallFailWindow(QtGui.QMainWindow):
     def analyticsMethod(self):
         self.analyticsBtn.setDisabled(True)
         self.generateDocumentBtn.setDisabled(True)
-        # self.doAnalytics(log_call_back=self.emitAppendLogSignal)
-        threadUtil = ThreadUtil(funcName=self.doAnalytics, log_call_back=self.emitAppendLogSignal)
-        threadUtil.setDaemon(True)
-        threadUtil.start()
+        self.doAnalyticsWithGroup()
 
     """
     开始分析， 分析步骤：
-    1. 先分析给定的关键字，进行搜索。
-    2. 若搜索到关键字相关文本行，则进行关键log 信息保存，保存进 AnalyticsLogBeanList 集合
-    3. 若第2步搜索到内容，则进行基本信息搜索, 基本信息BaseAttrBean: binderNumber, machineMode, osVersion 等
-    4. 若第3步搜索到基本信息，则将 AnalyticsLogBean 内容与 baseAttr 基本信息进行整合，保存进 CallFailBeanList 中。便于后面生成文档。
+    1. 先将文件进行分组；
+    2. 先分析给定的关键字，在分组数据中进行搜索；
+    3. 再搜索基础信息，同样在分组数据中进行搜索；(基本信息BaseAttrBean: binderNumber, machineMode, osVersion 等)
+    4. 组合数据，则将 AnalyticsLogBean 内容与 baseAttr 基本信息进行整合，保存进 CallFailBeanList 中。便于后面生成文档。
     """
-    def doAnalytics(self, log_call_back):
+    def doAnalyticsWithGroup(self):
         selectDir = str(self.selectDirectoryLineEdit.text())
         if not selectDir:
             logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
-            log_call_back(logMsg)
+            self.appendLog(logMsg)
             self.analyticsBtn.setEnabled(True)
             self.generateDocumentBtn.setEnabled(True)
             return
-        analyKey = str(self.keywordLineEdit.text()) if str(
+        allFilePaths = FileUtil.getAllFiles(selectDir)
+        print 'len(allFilePaths): ', len(allFilePaths)
+        supportFilePaths = []
+        for filePath in allFilePaths:
+            if SupportFiles.hasSupportFile(filePath) and \
+                    not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
+                supportFilePaths.append(filePath)
+        if not supportFilePaths:
+            return
+        self.analyticsGroupTotalSize = len([supportFilePaths[i:i+10] for i in xrange(0, len(supportFilePaths), 10)])
+        print 'len(supportFilePaths): ', len(supportFilePaths)
+        print 'len(analyticsGroupTotalSize): ', self.analyticsGroupTotalSize
+        # 1. 数组分组，以10个一组
+        for i in xrange(0, len(supportFilePaths), 10):
+            filePathList = supportFilePaths[i:i+10]
+            # print 'filePathList: ', filePathList
+            # 2,3 进行分组数据搜索
+            # 无线程版
+            # self.doSearchFile(filePathList, self.emitAppendLogSignal)
+            threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList, log_call_back=self.emitAppendLogSignal)
+            threadUtil.setDaemon(True)
+            threadUtil.start()
+
+    # 2,3 进行分组数据搜索
+    def doSearchFile(self, filePaths, log_call_back):
+        if not filePaths:
+            return
+        analyKeyword = str(self.keywordLineEdit.text()) if str(
             self.keywordLineEdit.text()).strip() else u'reportCallFailLD ='
         baseAttrKeyword = u'base attribute info'
-        filePaths = FileUtil.getAllFiles(selectDir)
-        # 保存分析的日志信息集合
-        analyticsLogList = []
         # 搜索关键字信息
         for filePath in filePaths:
-            if SupportFiles.hasSupportFile(filePath) and not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
-                # print _translateUtf8(filePath)
-                searchedlogInFile = self.searchWordInFile(analyKey, filePath, log_call_back)
-                if not searchedlogInFile:
-                    continue
-                # print '----> ', searchedlogInFile
-                # 匹配时间
-                reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
-                # 匹配以时间开头，除换行符"\n"之外的任意字符
-                reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
-                # 一个文件中可能有多个异常Log打印信息
-                searchedLogList = re.findall(reLogStr, searchedlogInFile)
-                # print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, filePath)
-                for searchedLog in searchedLogList:
-                    logTime = re.search(reTimeStr, str(searchedLog)).group(1)
-                    analyLogBean = AnalyticsLogBean()
-                    analyLogBean.keyword = analyKey
-                    analyLogBean.logTxt = searchedLog
-                    analyLogBean.filePath = filePath
-                    analyLogBean.logTime = logTime
-                    self.filterAnalyLog2List(analyticsLogList, analyLogBean)
-                    # analyticsLogList.append(analyLogBean)
-                    # print 'searchedlogInFile == ', searchedlogInFile
-            # else:
-            #     logMsg = u'暂不支持文件：' + _translateUtf8(filePath)
-            #     print logMsg
-        # 保存基本信息的集合
-        baseAttrList = []
+            print "filePath---> : %s --> currentThread: %s" % (_translateUtf8(filePath), threading.currentThread().getName())
+            searchedlogInFile = self.searchWordInFile(analyKeyword, filePath, log_call_back)
+            if not searchedlogInFile:
+                continue
+            # print '----> ', searchedlogInFile
+            # 匹配时间
+            reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
+            # 匹配以时间开头，除换行符"\n"之外的任意字符
+            reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
+            # 一个文件中可能有多个异常Log打印信息
+            searchedLogList = re.findall(reLogStr, searchedlogInFile)
+            print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, filePath)
+            for searchedLog in searchedLogList:
+                logTime = re.search(reTimeStr, str(searchedLog)).group(1)
+                analyLogBean = AnalyticsLogBean()
+                analyLogBean.keyword = analyKeyword
+                analyLogBean.logTxt = searchedLog
+                analyLogBean.filePath = filePath
+                analyLogBean.logTime = logTime
+                self.filterAnalyLog2List(self.analyticsLogList, analyLogBean)
+                # analyticsLogList.append(analyLogBean)
+                # print 'searchedlogInFile == ', searchedlogInFile
         # 再搜索基本信息
-        # print 'len(analyticsLogList): ', len(analyticsLogList)
-        if analyticsLogList:
-            # 先搜索基础信息
-            for filePath in filePaths:
-                if SupportFiles.hasSupportFile(filePath) and not SupportFiles.hasContainsPath(filePath, *self.removeThePathKeys()):
-                    searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
-                    # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
-                    baseAttrJson = self.filterBaseAttr2Json(searchedBaseAttr)
-                    # print '==> baseAttrJsonDict: ', baseAttrJson
-                    if baseAttrJson:
-                        baseAttr = BaseAttrBean()
-                        baseAttr.binderNumber = baseAttrJson['mId']
-                        baseAttr.machineMode = baseAttrJson['devName']
-                        baseAttr.osVersion = baseAttrJson['osVer']
-                        self.filterBaseAttr2List(baseAttrList, baseAttr)
-            print 'len(analyticsLogList): ', len(analyticsLogList)
-            print 'len(baseAttrList): ', len(baseAttrList)
-            # 再组合数据
-            for analyLog in analyticsLogList:
+        # print 'len(analyticsLogList): ', len(self.analyticsLogList)
+        # 先搜索基础信息
+        for filePath in filePaths:
+            searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
+            # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
+            baseAttrJson = self.filterBaseAttr2Json(searchedBaseAttr)
+            # print '==> baseAttrJsonDict: ', baseAttrJson
+            if baseAttrJson:
+                baseAttr = BaseAttrBean()
+                baseAttr.binderNumber = baseAttrJson['mId']
+                baseAttr.machineMode = baseAttrJson['devName']
+                baseAttr.osVersion = baseAttrJson['osVer']
+                print 'baseAttr: ', baseAttr
+                self.filterBaseAttr2List(self.baseAttrList, baseAttr)
+        # print 'len(analyticsLogList): ', len(self.analyticsLogList)
+        # print 'len(baseAttrList): ', len(self.baseAttrList)
+        # 4. 组合数据，去主线程组装数据
+        self.emitCombineLogSignal()
+
+    def combineLogSignal(self):
+        pass
+
+    def emitCombineLogSignal(self):
+        self.analyticsBtn.emit(QtCore.SIGNAL('combineLogSignal()'))
+
+    # 4. 组合数据,主线程组装数据(提高优先级)
+    def combineLogWithAttr(self):
+        print u'---- 开始组装数据 -----', threading.currentThread().getName()
+        self.processedGroupSize += 1
+        logMsg = u'一共需要分析:' + str(self.analyticsGroupTotalSize) + u'组，已经分析:' + str(self.processedGroupSize) \
+                 + u'组，剩余:' + str(self.analyticsGroupTotalSize - self.processedGroupSize) + u'组。'
+        self.appendLog(logMsg)
+        print logMsg
+        if self.analyticsGroupTotalSize == self.processedGroupSize:
+            for analyLog in self.analyticsLogList:
                 analyLogTxt = analyLog.logTxt
                 analyLogFilePath = analyLog.filePath
                 analyLogStr = re.search(r'ReportCallFailLD\s(\{.+})', analyLogTxt).group(1)
                 analyLogJson = self.convertStr2JsonStr(analyLogStr)
                 if not analyLogJson:
                     continue
-                for baseAttr in baseAttrList:
+                for baseAttr in self.baseAttrList:
                     binderNumber = baseAttr.binderNumber
                     # 组合同一个绑定号数据
                     if analyLogStr.find(binderNumber) != -1 or analyLogFilePath.find(binderNumber) != -1:
@@ -328,38 +372,47 @@ class CallFailWindow(QtGui.QMainWindow):
                         callFail.logFilePath = analyLogFilePath
                         print '----> callFail (bindNumber: %s,  machineMode: %s, osVersion: %s, failTime: %s, ' \
                               'voiceNetworkType: %s, dailMode: %s, causeCode: %s, vendorCause: %s, logText: %s,' \
-                              ' logFilePath: %s) '\
+                              ' logFilePath: %s) ' \
                               % (callFail.binderNumber, callFail.machineMode, callFail.osVersion, callFail.failTime,
                                  callFail.voiceNetworkType, callFail.dialMode, callFail.causeCode,
                                  callFail.vendorCauseCode, callFail.logText, callFail.logFilePath)
                         self.callFailList.append(callFail)
-        self.analyticsBtn.setEnabled(True)
-        self.generateDocumentBtn.setEnabled(True)
-        logMsg = u'---------- 日志分析完毕 -----------'
-        log_call_back(logMsg)
-        self.emitTrayMsgSignal(u'日志分析完毕')
-        print '------------- over ---------------'
+            self.analyticsBtn.setEnabled(True)
+            self.generateDocumentBtn.setEnabled(True)
+            logMsg = u'---------- 日志分析完毕 -----------'
+            self.appendLog(logMsg)
+            self.emitTrayMsgSignal(u'日志分析完毕')
+            print '------------- over ---------------'
 
     # 在文件中，搜索关键字，并返回该关键字所在的行数据
     def searchWordInFile(self, keyword, file_path, log_call_back=None):
+        print '---> searchWordInFile 111: ', keyword
+        print '---> searchWordInFile 111: ', file_path
         if not file_path or not keyword.strip():
             return
         filePath = _translate('', file_path, None)
         file = QFile(filePath)
         if not file.open(QtCore.QIODevice.ReadOnly):
+            print '---> searchWordInFile 222: ', file_path
             logMsg = u'无法打开文件：' + _translateUtf8(file_path)
             self.dologCallBack(log_call_back, logMsg)
             file.close()
             return
+        print '---> searchWordInFile 333: ', file_path
         stream = QtCore.QTextStream(file)
         stream.setCodec('UTF-8')
         data = stream.readAll()
+        print '---> searchWordInFile aaaaa: ', file_path
         file.close()
         stream.flush()
+        print '---> searchWordInFile bbbb: ', file_path
+        print '---> searchWordInFile bbbb len(data): ', len(data)
         dataTmp = StringIO.StringIO(data)
+        print '---> searchWordInFile ccccc: ', file_path
         searchedText = ''
         logMsg = u'正在分析文件：' + _translateUtf8(file_path)
         self.dologCallBack(log_call_back, logMsg)
+        print '---> searchWordInFile 444: ', file_path
         while True:
             textLine = str(_translateUtf8(dataTmp.readline()))
             if textLine == '':
@@ -371,6 +424,9 @@ class CallFailWindow(QtGui.QMainWindow):
             keywordIndex = textLineLower.find(keyword.lower())
             if keywordIndex != -1:
                 searchedText += textLine
+        print '---> searchWordInFile 555: ', file_path
+        # release StringIO memory
+        dataTmp.close()
         return searchedText
 
     # 处理 log_call_back 函数，去除None空回调和返回信息的问题
@@ -402,14 +458,15 @@ class CallFailWindow(QtGui.QMainWindow):
 
     # 过滤日志信息, 去重后添加进集合
     def filterAnalyLog2List(self, analyticsLogList, analyLogBean):
-        if not analyLogBean:
-            return
-        if len(analyticsLogList) == 0:
-            analyticsLogList.append(analyLogBean)
-            return
-        if not self.hasListContainLog(analyticsLogList, analyLogBean):
-            # print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
-            analyticsLogList.append(analyLogBean)
+        with self.filterLogLock:
+            if not analyLogBean:
+                return
+            if len(analyticsLogList) == 0:
+                analyticsLogList.append(analyLogBean)
+                return
+            if not self.hasListContainLog(analyticsLogList, analyLogBean):
+                # print '>>>> append analyticsLogList: %s ---> analyLogBean:%s' % (analyticsLogList, analyLogBean)
+                analyticsLogList.append(analyLogBean)
 
     # 集合中是否已经包含了重复LOG
     def hasListContainLog(self, analyticsLogList, analyLogBean):
@@ -422,14 +479,15 @@ class CallFailWindow(QtGui.QMainWindow):
 
     # 过滤 baseAttr 信息， 去重后添加进集合
     def filterBaseAttr2List(self, baseAttrList, baseAttr):
-        if not baseAttr:
-            return
-        if len(baseAttrList) == 0:
-            baseAttrList.append(baseAttr)
-            return
-        if not self.hasListContainAttr(baseAttrList, baseAttr):
-            # print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
-            baseAttrList.append(baseAttr)
+        with self.filterAttrLock:
+            if not baseAttr:
+                return
+            if len(baseAttrList) == 0:
+                baseAttrList.append(baseAttr)
+                return
+            if not self.hasListContainAttr(baseAttrList, baseAttr):
+                # print '>>>> append baseAttrList: %s ---> baseAttr:%s' % (baseAttrList, baseAttr)
+                baseAttrList.append(baseAttr)
 
     # 集合中是否已经包含了重复attr属性
     def hasListContainAttr(self, baseAttrList, baseAttr):
@@ -525,8 +583,7 @@ class CallFailWindow(QtGui.QMainWindow):
             logMsg = u'已生成文档：' + _translateUtf8(filePath)
             log_call_back(logMsg)
             print logMsg
-        # 清空本次callFail
-        self.callFailList = []
+        self.release()
         logMsg = u'---------- 文档生成完毕 -----------'
         log_call_back(logMsg)
         self.emitTrayMsgSignal(u'文档生成完毕')
@@ -543,6 +600,15 @@ class CallFailWindow(QtGui.QMainWindow):
     # 需要去除包含以下关键字的路径
     def removeThePathKeys(self):
         return ["traces", "bugreport", "diag_logs"]
+
+    # release
+    def release(self):
+        # 清空本次数据
+        self.analyticsLogList = []
+        self.baseAttrList = []
+        self.callFailList = []
+        self.analyticsGroupTotalSize = 0
+        self.processedGroupSize = 0
 
     # 显示操作日志
     def appendLog(self, logTxt):

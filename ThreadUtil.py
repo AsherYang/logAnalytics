@@ -11,7 +11,7 @@ Desc  : 线程工具类， 将线程的异常信息上报传递给主线程。
 https://blog.csdn.net/linchere/article/details/49587479
 """
 
-import threading, traceback, sys
+import threading, traceback, sys, os
 
 
 class ThreadUtil(threading.Thread):
@@ -30,6 +30,8 @@ class ThreadUtil(threading.Thread):
             self.exitCode = 1
             self.exception = e
             self.exc_traceback = ''.join(traceback.format_exception(*sys.exc_info()))
+            # print 'self.exc_traceback: ', self.exc_traceback
+            raise e
 
     def _run(self):
         try:
