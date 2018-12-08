@@ -31,6 +31,7 @@ from analyticslog.AnalyticsLogBean import AnalyticsLogBean
 from analyticslog.BaseAttrBean import BaseAttrBean
 from IconResourceUtil import resource_path
 from DownloadLogByWeb import DownloadLogByWeb
+from SearchByMultiProcess import SearchByMultiProcess
 import xlrd
 import threading
 
@@ -97,7 +98,7 @@ class CallFailWindow(QtGui.QMainWindow):
         self.downloadLogBtn.connect(self.downloadLogBtn,  QtCore.SIGNAL('clicked()'), self.downloadLogMethod)
         self.unzipBtn.connect(self.unzipBtn,  QtCore.SIGNAL('clicked()'), self.unZipMethod)
         self.analyticsBtn.connect(self.analyticsBtn,  QtCore.SIGNAL('clicked()'), self.analyticsMethod)
-        self.analyticsBtn.connect(self.analyticsBtn, QtCore.SIGNAL('combineLogSignal()'), self.combineLogWithAttr)
+        self.analyticsBtn.connect(self.analyticsBtn, QtCore.SIGNAL('combineLogSignal(QString)'), self.combineLogWithAttr)
         self.generateDocumentBtn.connect(self.generateDocumentBtn,  QtCore.SIGNAL('clicked()'), self.genDocMethod)
         self.openDirBtn.connect(self.openDirBtn,  QtCore.SIGNAL('clicked()'), self.openDirMethod)
         self.btnsLayout.addWidget(self.downloadLogBtn)
@@ -121,6 +122,14 @@ class CallFailWindow(QtGui.QMainWindow):
         self.analyticsGroupTotalSize = 0
         self.processedGroupSize = 0
         self.processedGroupLock = threading.Lock()
+        # 接收 keywordLineEdit 中输入的关键字
+        self.analyKeyword = None
+        # 接收基础信息 baseAttr 的关键字
+        self.baseAttrKeyword = None
+        # 搜索keyword 时，返回包含keyword的行数据
+        self.searchedKeywordLines = ""
+        # 搜索基础信息baseAttr时, 返回包含baseAttr的行数据
+        self.searchedBaseAttrLines = ""
         # 保存分析的日志信息集合
         self.analyticsLogList = []
         # 保存基本信息的集合
@@ -246,8 +255,8 @@ class CallFailWindow(QtGui.QMainWindow):
 
     """
     开始分析， 分析步骤：
-    1. 先将文件进行分组；
-    2. 先分析给定的关键字，在分组数据中进行搜索；
+    1. 先将文件进行分组；利用线程分组策略，每一线程处理多个文件
+    2. 先分析给定的关键字，在单个数据文件中进行搜索；利用多进程读取策略读取单个文件(提升速度)(!暂时未实现20181206!)
     3. 再搜索基础信息，同样在分组数据中进行搜索；(基本信息BaseAttrBean: binderNumber, machineMode, osVersion 等)
     4. 组合数据，则将 AnalyticsLogBean 内容与 baseAttr 基本信息进行整合，保存进 CallFailBeanList 中。便于后面生成文档。
     """
@@ -277,71 +286,38 @@ class CallFailWindow(QtGui.QMainWindow):
             # print 'filePathList: ', filePathList
             # 2,3 进行分组数据搜索
             # 无线程版
-            # self.doSearchFile(filePathList, self.emitAppendLogSignal)
-            threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList, log_call_back=self.emitAppendLogSignal)
+            # self.doSearchFile(filePathList)
+            threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList)
             threadUtil.setDaemon(True)
             threadUtil.start()
 
     # 2,3 进行分组数据搜索
-    def doSearchFile(self, filePaths, log_call_back):
+    def doSearchFile(self, filePaths):
         if not filePaths:
             return
-        analyKeyword = str(self.keywordLineEdit.text()) if str(
+        # 进行搜索前，确认本次搜索关键字
+        self.analyKeyword = str(self.keywordLineEdit.text()) if str(
             self.keywordLineEdit.text()).strip() else u'reportCallFailLD ='
-        baseAttrKeyword = u'base attribute info'
+        self.baseAttrKeyword = u'base attribute info'
         # 搜索关键字信息
         for filePath in filePaths:
-            print "filePath---> : %s --> currentThread: %s" % (_translateUtf8(filePath), threading.currentThread().getName())
-            searchedlogInFile = self.searchWordInFile(analyKeyword, filePath, log_call_back)
-            if not searchedlogInFile:
-                continue
-            # print '----> ', searchedlogInFile
-            # 匹配时间
-            reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
-            # 匹配以时间开头，除换行符"\n"之外的任意字符
-            reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
-            # 一个文件中可能有多个异常Log打印信息
-            searchedLogList = re.findall(reLogStr, searchedlogInFile)
-            print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, filePath)
-            for searchedLog in searchedLogList:
-                logTime = re.search(reTimeStr, str(searchedLog)).group(1)
-                analyLogBean = AnalyticsLogBean()
-                analyLogBean.keyword = analyKeyword
-                analyLogBean.logTxt = searchedLog
-                analyLogBean.filePath = filePath
-                analyLogBean.logTime = logTime
-                self.filterAnalyLog2List(self.analyticsLogList, analyLogBean)
-                # analyticsLogList.append(analyLogBean)
-                # print 'searchedlogInFile == ', searchedlogInFile
+            # print "filePath---> : %s --> currentThread: %s" % (_translateUtf8(filePath), threading.currentThread().getName())
+            self.searchkeywordByMultiProcess(filePath)
         # 再搜索基本信息
-        # print 'len(analyticsLogList): ', len(self.analyticsLogList)
-        # 先搜索基础信息
         for filePath in filePaths:
-            searchedBaseAttr = self.searchWordInFile(baseAttrKeyword, filePath)
-            # print '===> searchedBaseAttr: %s --> filePath: %s' % (searchedBaseAttr, filePath)
-            baseAttrJson = self.filterBaseAttr2Json(searchedBaseAttr)
-            # print '==> baseAttrJsonDict: ', baseAttrJson
-            if baseAttrJson:
-                baseAttr = BaseAttrBean()
-                baseAttr.binderNumber = baseAttrJson['mId']
-                baseAttr.machineMode = baseAttrJson['devName']
-                baseAttr.osVersion = baseAttrJson['osVer']
-                print 'baseAttr: ', baseAttr
-                self.filterBaseAttr2List(self.baseAttrList, baseAttr)
-        # print 'len(analyticsLogList): ', len(self.analyticsLogList)
-        # print 'len(baseAttrList): ', len(self.baseAttrList)
+            self.searchBaseAttrByMultiProcess(filePath)
         # 4. 组合数据，去主线程组装数据
-        self.emitCombineLogSignal()
+        self.emitCombineLogSignal(threading.currentThread().getName())
 
-    def combineLogSignal(self):
+    def combineLogSignal(self, thread_name):
         pass
 
-    def emitCombineLogSignal(self):
-        self.analyticsBtn.emit(QtCore.SIGNAL('combineLogSignal()'))
+    def emitCombineLogSignal(self, thread_name):
+        self.analyticsBtn.emit(QtCore.SIGNAL('combineLogSignal(QString)'), thread_name)
 
     # 4. 组合数据,主线程组装数据(提高优先级)
-    def combineLogWithAttr(self):
-        print u'---- 开始组装数据 -----', threading.currentThread().getName()
+    def combineLogWithAttr(self, thread_name):
+        print u'----线程%s已完成工作, 正在使用线程%s开始组装数据-----' % (thread_name, threading.currentThread().getName())
         self.processedGroupSize += 1
         logMsg = u'一共需要分析:' + str(self.analyticsGroupTotalSize) + u'组，已经分析:' + str(self.processedGroupSize) \
                  + u'组，剩余:' + str(self.analyticsGroupTotalSize - self.processedGroupSize) + u'组。'
@@ -384,49 +360,104 @@ class CallFailWindow(QtGui.QMainWindow):
             self.emitTrayMsgSignal(u'日志分析完毕')
             print '------------- over ---------------'
 
+    # 多进程操作文件，搜索输入关键字
+    def searchkeywordByMultiProcess(self, file_path):
+        searchKeywordMultiProcess = SearchByMultiProcess(file_path, self.analyKeyword, self.searchKeywordCallBack)
+        searchKeywordMultiProcess.createAndDoJobs()
+
+    # 多进程操作文件，用于状态回调
+    @staticmethod
+    def searchKeywordCallBack(self, status, file_path, searchedLogList):
+        # print '-0---searchKeywordCallBack keyword:%s == lines: %s' % (self.analyKeyword, self.searchedKeywordLines)
+        if not self.analyKeyword:
+            return
+        if status == SearchByMultiProcess.STATUS_PROCESSING:
+            logMsg = u'正在分析文件：' + _translateUtf8(file_path)
+            self.dologCallBack(self.emitAppendLogSignal, logMsg)
+            return
+        if not searchedLogList:
+            return
+        # 匹配以时间开头，除换行符"\n"之外的任意字符
+        reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
+        # 匹配时间
+        reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
+        # 一个文件中可能有多个异常Log打印信息
+        searchedLogList = re.findall(reLogStr, self.searchedKeywordLines)
+        print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, file_path)
+        for searchedLog in searchedLogList:
+            logTime = re.search(reTimeStr, str(searchedLog)).group(1)
+            analyLogBean = AnalyticsLogBean()
+            analyLogBean.keyword = self.analyKeyword
+            analyLogBean.logTxt = searchedLog
+            analyLogBean.filePath = file_path
+            analyLogBean.logTime = logTime
+            self.filterAnalyLog2List(self.analyticsLogList, analyLogBean)
+        # 清空本次搜素到的数据， 已放入analyticsLogList集合中
+        self.searchedKeywordLines = ""
+        print '--> searchKeywordCallBack status: %d --> threadName: %s --> filePath: %s' % (status, threading.currentThread().getName(), file_path)
+
+    # 多进程操作文件，搜索基础信息
+    def searchBaseAttrByMultiProcess(self, file_path):
+        searchKeywordMultiProcess = SearchByMultiProcess(file_path, self.baseAttrKeyword, self.searchBaseAttrCallBack)
+        searchKeywordMultiProcess.createAndDoJobs()
+
+    # 多进程操作文件，用于状态回调
+    @staticmethod
+    def searchBaseAttrCallBack(self, status, file_path):
+        if not self.baseAttrKeyword:
+            return
+        if status == SearchByMultiProcess.STATUS_PROCESSING:
+            return
+        if not self.searchedBaseAttrLines:
+            return
+        baseAttrJson = self.filterBaseAttr2Json(self.searchedBaseAttrLines)
+        # print '==> baseAttrJsonDict: ', baseAttrJson
+        if baseAttrJson:
+            baseAttr = BaseAttrBean()
+            baseAttr.binderNumber = baseAttrJson['mId']
+            baseAttr.machineMode = baseAttrJson['devName']
+            baseAttr.osVersion = baseAttrJson['osVer']
+            print 'baseAttr: ', baseAttr
+            self.filterBaseAttr2List(self.baseAttrList, baseAttr)
+        # 清空本次搜素到的数据， 已放入baseAttrList集合中
+        self.searchedBaseAttrLines = ""
+
     # 在文件中，搜索关键字，并返回该关键字所在的行数据
     def searchWordInFile(self, keyword, file_path, log_call_back=None):
-        print '---> searchWordInFile 111: ', keyword
-        print '---> searchWordInFile 111: ', file_path
         if not file_path or not keyword.strip():
             return
         filePath = _translate('', file_path, None)
         file = QFile(filePath)
         if not file.open(QtCore.QIODevice.ReadOnly):
-            print '---> searchWordInFile 222: ', file_path
             logMsg = u'无法打开文件：' + _translateUtf8(file_path)
             self.dologCallBack(log_call_back, logMsg)
             file.close()
             return
-        print '---> searchWordInFile 333: ', file_path
-        stream = QtCore.QTextStream(file)
-        stream.setCodec('UTF-8')
-        data = stream.readAll()
-        print '---> searchWordInFile aaaaa: ', file_path
-        file.close()
-        stream.flush()
-        print '---> searchWordInFile bbbb: ', file_path
-        print '---> searchWordInFile bbbb len(data): ', len(data)
-        dataTmp = StringIO.StringIO(data)
-        print '---> searchWordInFile ccccc: ', file_path
-        searchedText = ''
         logMsg = u'正在分析文件：' + _translateUtf8(file_path)
         self.dologCallBack(log_call_back, logMsg)
-        print '---> searchWordInFile 444: ', file_path
-        while True:
-            textLine = str(_translateUtf8(dataTmp.readline()))
-            if textLine == '':
-                # logMsg = u'已分析完文件：' + _translateUtf8(file_path)
-                # log_call_back(logMsg)
-                # print logMsg
-                break
-            textLineLower = textLine.lower()
-            keywordIndex = textLineLower.find(keyword.lower())
-            if keywordIndex != -1:
-                searchedText += textLine
-        print '---> searchWordInFile 555: ', file_path
+        # stream = QtCore.QTextStream(file)
+        # stream.setCodec('UTF-8')
+        # data = stream.readAll()
+        # file.close()
+        # stream.flush()
+        # dataTmp = StringIO.StringIO(data)
+        searchedText = ''
+        # while True:
+        with open(filePath) as f:
+            print 'len(file): ', len(f.readlines())
+            for line in f:
+                textLine = str(_translateUtf8(line))
+                if textLine == '':
+                    # logMsg = u'已分析完文件：' + _translateUtf8(file_path)
+                    # log_call_back(logMsg)
+                    # print logMsg
+                    break
+                textLineLower = textLine.lower()
+                keywordIndex = textLineLower.find(keyword.lower())
+                if keywordIndex != -1:
+                    searchedText += textLine
         # release StringIO memory
-        dataTmp.close()
+        # dataTmp.close()
         return searchedText
 
     # 处理 log_call_back 函数，去除None空回调和返回信息的问题
@@ -604,6 +635,8 @@ class CallFailWindow(QtGui.QMainWindow):
     # release
     def release(self):
         # 清空本次数据
+        self.analyKeyword = None
+        self.baseAttrKeyword = None
         self.analyticsLogList = []
         self.baseAttrList = []
         self.callFailList = []
