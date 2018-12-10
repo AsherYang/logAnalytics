@@ -119,9 +119,9 @@ class CallFailWindow(QtGui.QMainWindow):
         self.mainLayout.addWidget(self.LogTextEdit)
         self.centralwidget.setLayout(self.mainLayout)
         # 优化文件数据分析性能，已分组形式进行, 这两个变量记录总共需要分析的分组数量，以及已经分析的组数
-        self.analyticsGroupTotalSize = 0
-        self.processedGroupSize = 0
-        self.processedGroupLock = threading.Lock()
+        # self.analyticsGroupTotalSize = 0
+        # self.processedGroupSize = 0
+        # self.processedGroupLock = threading.Lock()
         # 接收 keywordLineEdit 中输入的关键字
         self.analyKeyword = None
         # 接收基础信息 baseAttr 的关键字
@@ -277,9 +277,9 @@ class CallFailWindow(QtGui.QMainWindow):
                 supportFilePaths.append(filePath)
         if not supportFilePaths:
             return
-        self.analyticsGroupTotalSize = len([supportFilePaths[i:i+10] for i in xrange(0, len(supportFilePaths), 10)])
-        print 'len(supportFilePaths): ', len(supportFilePaths)
-        print 'len(analyticsGroupTotalSize): ', self.analyticsGroupTotalSize
+        # self.analyticsGroupTotalSize = len([supportFilePaths[i:i+10] for i in xrange(0, len(supportFilePaths), 10)])
+        # print 'len(supportFilePaths): ', len(supportFilePaths)
+        # print 'len(analyticsGroupTotalSize): ', self.analyticsGroupTotalSize
         # 1. 数组分组，以10个一组
         # for i in xrange(0, len(supportFilePaths), 10):
         #     filePathList = supportFilePaths[i:i+10]
@@ -322,47 +322,49 @@ class CallFailWindow(QtGui.QMainWindow):
     # 4. 组合数据,主线程组装数据(提高优先级)
     def combineLogWithAttr(self, thread_name):
         print u'----线程%s已完成工作, 正在使用线程%s开始组装数据-----' % (thread_name, threading.currentThread().getName())
-        self.processedGroupSize += 1
-        logMsg = u'一共需要分析:' + str(self.analyticsGroupTotalSize) + u'组，已经分析:' + str(self.processedGroupSize) \
-                 + u'组，剩余:' + str(self.analyticsGroupTotalSize - self.processedGroupSize) + u'组。'
+        # self.processedGroupSize += 1
+        # logMsg = u'一共需要分析:' + str(self.analyticsGroupTotalSize) + u'组，已经分析:' + str(self.processedGroupSize) \
+        #          + u'组，剩余:' + str(self.analyticsGroupTotalSize - self.processedGroupSize) + u'组。'
+        logMsg = u'已分析完文件，正在开始组装数据'
         self.appendLog(logMsg)
         print logMsg
-        if self.analyticsGroupTotalSize == self.processedGroupSize:
-            for analyLog in self.analyticsLogList:
-                analyLogTxt = analyLog.logTxt
-                analyLogFilePath = analyLog.filePath
-                analyLogStr = re.search(r'ReportCallFailLD\s(\{.+})', analyLogTxt).group(1)
-                analyLogJson = self.convertStr2JsonStr(analyLogStr)
-                if not analyLogJson:
-                    continue
-                for baseAttr in self.baseAttrList:
-                    binderNumber = baseAttr.binderNumber
-                    # 组合同一个绑定号数据
-                    if analyLogStr.find(binderNumber) != -1 or analyLogFilePath.find(binderNumber) != -1:
-                        callFail = CallFailBean()
-                        callFail.binderNumber = binderNumber
-                        callFail.machineMode = baseAttr.machineMode
-                        callFail.osVersion = baseAttr.osVersion
-                        callFail.failTime = analyLog.logTime
-                        callFail.voiceNetworkType = analyLogJson['voiceNetWorkTypeLD']
-                        callFail.dialMode = analyLogJson['selfDialModeLD']
-                        callFail.causeCode = analyLogJson['callFailCauseCodeLD']
-                        callFail.vendorCauseCode = analyLogJson['callFailVendorCauseLD']
-                        callFail.logText = analyLogTxt
-                        callFail.logFilePath = analyLogFilePath
-                        print '----> callFail (bindNumber: %s,  machineMode: %s, osVersion: %s, failTime: %s, ' \
-                              'voiceNetworkType: %s, dailMode: %s, causeCode: %s, vendorCause: %s, logText: %s,' \
-                              ' logFilePath: %s) ' \
-                              % (callFail.binderNumber, callFail.machineMode, callFail.osVersion, callFail.failTime,
-                                 callFail.voiceNetworkType, callFail.dialMode, callFail.causeCode,
-                                 callFail.vendorCauseCode, callFail.logText, callFail.logFilePath)
-                        self.callFailList.append(callFail)
-            self.analyticsBtn.setEnabled(True)
-            self.generateDocumentBtn.setEnabled(True)
-            logMsg = u'---------- 日志分析完毕 -----------'
-            self.appendLog(logMsg)
-            self.emitTrayMsgSignal(u'日志分析完毕')
-            print '------------- over ---------------'
+        # if self.analyticsGroupTotalSize == self.processedGroupSize:
+        for analyLog in self.analyticsLogList:
+            analyLogTxt = analyLog.logTxt
+            analyLogFilePath = analyLog.filePath
+            analyLogStr = re.search(r'ReportCallFailLD\s(\{.+})', analyLogTxt).group(1)
+            analyLogJson = self.convertStr2JsonStr(analyLogStr)
+            if not analyLogJson:
+                continue
+            for baseAttr in self.baseAttrList:
+                binderNumber = baseAttr.binderNumber
+                # 组合同一个绑定号数据
+                if analyLogStr.find(binderNumber) != -1 or analyLogFilePath.find(binderNumber) != -1:
+                    callFail = CallFailBean()
+                    callFail.binderNumber = binderNumber
+                    callFail.machineMode = baseAttr.machineMode
+                    callFail.osVersion = baseAttr.osVersion
+                    callFail.failTime = analyLog.logTime
+                    callFail.voiceNetworkType = analyLogJson['voiceNetWorkTypeLD']
+                    callFail.dialMode = analyLogJson['selfDialModeLD']
+                    callFail.causeCode = analyLogJson['callFailCauseCodeLD']
+                    callFail.vendorCauseCode = analyLogJson['callFailVendorCauseLD']
+                    callFail.logText = analyLogTxt
+                    callFail.logFilePath = analyLogFilePath
+                    print '----> callFail (bindNumber: %s,  machineMode: %s, osVersion: %s, failTime: %s, ' \
+                          'voiceNetworkType: %s, dailMode: %s, causeCode: %s, vendorCause: %s, logText: %s,' \
+                          ' logFilePath: %s) ' \
+                          % (callFail.binderNumber, callFail.machineMode, callFail.osVersion, callFail.failTime,
+                             callFail.voiceNetworkType, callFail.dialMode, callFail.causeCode,
+                             callFail.vendorCauseCode, callFail.logText, callFail.logFilePath)
+                    self.callFailList.append(callFail)
+        self.analyticsBtn.setEnabled(True)
+        self.generateDocumentBtn.setEnabled(True)
+        logMsg = u'---------- 日志分析完毕 -----------'
+        self.appendLog(logMsg)
+        self.emitTrayMsgSignal(u'日志分析完毕')
+        print '------------- over ---------------'
+        # end if self.analyticsGroupTotalSize == self.processedGroupSize: (此处只做一个end if 语句记号)
 
     # 多进程操作文件，搜索输入关键字
     def searchkeywordByMultiProcess(self, file_path):
@@ -658,8 +660,8 @@ class CallFailWindow(QtGui.QMainWindow):
         self.analyticsLogList = []
         self.baseAttrList = []
         self.callFailList = []
-        self.analyticsGroupTotalSize = 0
-        self.processedGroupSize = 0
+        # self.analyticsGroupTotalSize = 0
+        # self.processedGroupSize = 0
 
     # 显示操作日志
     def appendLog(self, logTxt):
