@@ -11,6 +11,7 @@ Desc  : 多进程操作文件
 
 import multiprocessing as mp
 import os
+from EncodeUtil import _translateUtf8
 
 
 """
@@ -25,11 +26,12 @@ class MultiProcessFile:
     STATUS_PROCESSING = 0
     STATUS_PROCESSED = 1
 
-    def __init__(self, fname, status_call_back, process_func, *args):
+    def __init__(self, fname, cls_instance, status_call_back, process_func, keyword):
         self.fname = fname
+        self.clsInstance = cls_instance
         self.statusCallBack = status_call_back
         self.processFunc = process_func
-        self.args = args
+        self.keyword = keyword
 
     def chunkify(self, size=1024 * 1024):
         fileEnd = os.path.getsize(self.fname)
@@ -46,10 +48,10 @@ class MultiProcessFile:
                     break
 
     def createAndDoJobs(self):
-        # print 'cpu: ', mp.cpu_count()
-        # if self.statusCallBack:
-        #     self.statusCallBack(MultiProcessFile.STATUS_PROCESSING, self.fname)
-        pool = mp.Pool(processes=mp.cpu_count())
+        cpu = mp.cpu_count()-1 if mp.cpu_count() > 1 else 1
+        if self.statusCallBack:
+            self.statusCallBack(self.clsInstance, MultiProcessFile.STATUS_PROCESSING, self.fname, None)
+        pool = mp.Pool(processes=cpu)
         jobs = []
         for chunkStart, chunkSize in self.chunkify():
             # print '====> chunkStart: %d , chunkSize: %d' % (chunkStart,  chunkSize)
@@ -57,13 +59,24 @@ class MultiProcessFile:
             # print '---type(process): ', type(cls.process_wrapper)
             # print '---type(process): ', self.processFunc
             # 需要注意传递的格式类型：函数和参数
-            jobs.append(pool.apply_async(self.processFunc, (self.fname, chunkStart, chunkSize, self.args, )))
+            jobs.append(pool.apply_async(self.processFunc, (self.fname, chunkStart, chunkSize, self.keyword, )))
             # jobs.append(pool.apply_async(self.processFunc, (self.keyword, self.fname, chunkStart, chunkSize,)))
         # wait for all jobs to finish
         pool.close()
         pool.join()
-        if self.statusCallBack:
-            self.statusCallBack(MultiProcessFile.STATUS_PROCESSED, self.fname, jobs)
+        self.doJobsCallBack(jobs)
+
+    def doJobsCallBack(self, jobs):
+        if not jobs:
+            return
+        tasks = []
+        for job in jobs:
+            if not job:
+                continue
+            # print '----> job.get(): ', job.get()
+            tasks.append(job.get())
+        if tasks and self.statusCallBack:
+            self.statusCallBack(self.clsInstance, MultiProcessFile.STATUS_PROCESSED, self.fname, tasks)
 
 
 # ==============下面方法不属于MultiProcessFile类，否则就无法在多进程中运行(方法与函数的区别) 用于测试=========================
@@ -93,21 +106,25 @@ def process_wrapper(fname, chunkStart, chunkSize, *args):
 # 具体操作，子类通过覆写该方法进行处理行数
 # 子类覆写该方法时，可将回调函数process_method 置为None
 def process(line, fname):
-    if line == '=================== beginning of main_system':
-        return ['line: ', line, 'fname: ', fname]
-    # if line == '11-30 14:40:57.520 10181 10181 I art     : Starting a blocking GC AddRemoveAppImageSpace':
-    #     print '----- process PID: ', os.getpid()
-    # return ['line: ', line, 'fname: ', fname]
-    return None
+    filterLines = ""
+    textLine = str(_translateUtf8(line))
+    print '--> textLine: ', textLine
+    textLineLower = textLine.lower()
+    keywordIndex = textLineLower.find("reportCallFailLD =")
+    if keywordIndex != -1:
+        filterLines += textLine
+    return filterLines
 
 
-def doCallBack(status, file, jobs):
+def doCallBack(cls_instance, status, file, jobs):
     print '----------- doCallBack status: ', status
     # print '----------- doCallBack file: ', file
-    for job in jobs:
-        print job.get()
-    pass
+    print 'jobs: ', jobs
+    if jobs:
+        for job in jobs:
+            if job:
+                print 'type(job): ', type(job)
 
 if __name__ == '__main__':
-    multiProcessFile = MultiProcessFile("Log.main_sys_2018-11-30 12-32-44.log", doCallBack, process_wrapper, 1,2,3)
+    multiProcessFile = MultiProcessFile("Log.main_sys_2018-11-30 00-00-17.log", None, doCallBack, process_wrapper, '11')
     multiProcessFile.createAndDoJobs()
