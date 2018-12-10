@@ -255,8 +255,8 @@ class CallFailWindow(QtGui.QMainWindow):
 
     """
     开始分析， 分析步骤：
-    1. 先将文件进行分组；利用线程分组策略，每一线程处理多个文件
-    2. 先分析给定的关键字，在单个数据文件中进行搜索；利用多进程读取策略读取单个文件(提升速度)(!暂时未实现20181206!)
+    # 1. 先将文件进行分组；利用线程分组策略，每一线程处理多个文件 (!!多进程操作文件的情况下，已去除!!)
+    2. 先分析给定的关键字，在单个数据文件中进行搜索；利用多进程读取策略读取单个文件(提升速度)
     3. 再搜索基础信息，同样在分组数据中进行搜索；(基本信息BaseAttrBean: binderNumber, machineMode, osVersion 等)
     4. 组合数据，则将 AnalyticsLogBean 内容与 baseAttr 基本信息进行整合，保存进 CallFailBeanList 中。便于后面生成文档。
     """
@@ -281,15 +281,19 @@ class CallFailWindow(QtGui.QMainWindow):
         print 'len(supportFilePaths): ', len(supportFilePaths)
         print 'len(analyticsGroupTotalSize): ', self.analyticsGroupTotalSize
         # 1. 数组分组，以10个一组
-        for i in xrange(0, len(supportFilePaths), 10):
-            filePathList = supportFilePaths[i:i+10]
-            # print 'filePathList: ', filePathList
-            # 2,3 进行分组数据搜索
-            # 无线程版
-            # self.doSearchFile(filePathList)
-            threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList)
-            threadUtil.setDaemon(True)
-            threadUtil.start()
+        # for i in xrange(0, len(supportFilePaths), 10):
+        #     filePathList = supportFilePaths[i:i+10]
+        #     # print 'filePathList: ', filePathList
+        #     # 2,3 进行分组数据搜索
+        #     # 无线程版
+        #     # self.doSearchFile(filePathList)
+        #     threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList)
+        #     threadUtil.setDaemon(True)
+        #     threadUtil.start()
+        # 去除多线程分组，默认采用多进程分析文件，避免同时使用多线程的情况下使用多进程，否则电脑会被冲爆
+        threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=supportFilePaths)
+        threadUtil.setDaemon(True)
+        threadUtil.start()
 
     # 2,3 进行分组数据搜索
     def doSearchFile(self, filePaths):
