@@ -48,9 +48,9 @@ class MultiProcessFile:
                     break
 
     def createAndDoJobs(self):
-        cpu = mp.cpu_count()-1 if mp.cpu_count() > 1 else 1
         if self.statusCallBack:
             self.statusCallBack(self.clsInstance, MultiProcessFile.STATUS_PROCESSING, self.fname, None)
+        cpu = mp.cpu_count()-1 if mp.cpu_count() > 1 else 1
         pool = mp.Pool(processes=cpu)
         jobs = []
         for chunkStart, chunkSize in self.chunkify():
@@ -74,7 +74,8 @@ class MultiProcessFile:
             if not job:
                 continue
             # print '----> job.get(): ', job.get()
-            tasks.append(job.get())
+            if job.get():
+                tasks.append(job.get())
         if tasks and self.statusCallBack:
             self.statusCallBack(self.clsInstance, MultiProcessFile.STATUS_PROCESSED, self.fname, tasks)
 

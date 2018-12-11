@@ -6,6 +6,9 @@ Author: AsherYang
 Email : ouyangfan1991@gmail.com
 Date  : 2018/12/8
 Desc  : 利用多进程在文件中搜索关键字
+
+本类是传递 line 数据出去，但是发现会出现 QWinEventNotifier cannot have more than 62 enabled at one time 的问题
+故，先拆分为 SearchKeywordByMultiProcess.py 和 SearchBaseAttrByMultiProcess.py 分别处理完line 再进行回调结果
 """
 import os
 from MultiProcessFile import MultiProcessFile

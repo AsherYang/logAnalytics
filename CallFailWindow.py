@@ -29,6 +29,8 @@ from ThreadUtil import ThreadUtil
 from analyticslog.CallFailBean import CallFailBean
 from analyticslog.AnalyticsLogBean import AnalyticsLogBean
 from analyticslog.BaseAttrBean import BaseAttrBean
+from SearchKeywordByMultiProcess import SearchKeywordByMultiProcess
+from SearchBaseAttrByMultiProcess import SearchBaseAttrByMultiProcess
 from IconResourceUtil import resource_path
 from DownloadLogByWeb import DownloadLogByWeb
 from SearchByMultiProcess import SearchByMultiProcess
@@ -278,7 +280,7 @@ class CallFailWindow(QtGui.QMainWindow):
         if not supportFilePaths:
             return
         # self.analyticsGroupTotalSize = len([supportFilePaths[i:i+10] for i in xrange(0, len(supportFilePaths), 10)])
-        # print 'len(supportFilePaths): ', len(supportFilePaths)
+        print 'len(supportFilePaths): ', len(supportFilePaths)
         # print 'len(analyticsGroupTotalSize): ', self.analyticsGroupTotalSize
         # 1. 数组分组，以10个一组
         # for i in xrange(0, len(supportFilePaths), 10):
@@ -368,7 +370,7 @@ class CallFailWindow(QtGui.QMainWindow):
 
     # 多进程操作文件，搜索输入关键字
     def searchkeywordByMultiProcess(self, file_path):
-        searchKeywordMultiProcess = SearchByMultiProcess(file_path, self.analyKeyword, self, self.searchKeywordCallBack)
+        searchKeywordMultiProcess = SearchKeywordByMultiProcess(file_path, self, self.searchKeywordCallBack, self.analyKeyword)
         searchKeywordMultiProcess.createAndDoJobs()
 
     # 多进程操作文件，用于状态回调
@@ -383,38 +385,18 @@ class CallFailWindow(QtGui.QMainWindow):
             return
         if not searchedLogJobs:
             return
-        # 匹配以时间开头，除换行符"\n"之外的任意字符
-        reLogStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}.*)'
-        # 匹配时间
-        reTimeStr = r'(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})'
-        # 一个文件中可能有多个异常Log打印信息
-        # print '===> searchedLogList: %s --> filePath: %s' % (searchedLogList, file_path)
-        for searchedLogStr in searchedLogJobs:
-            # print 'searchedLogStr: %s --> filePath: %s ' % (searchedLogStr, file_path)
-            if not searchedLogStr:
+        for searchedLogJob in searchedLogJobs:
+            if not searchedLogJob:
                 continue
-            searchedLogList = re.findall(reLogStr, searchedLogStr)
-            if not searchedLogList:
-                continue
-            # print 'searchedLogList: %s --> filePath: %s ' % (searchedLogList, file_path)
-            for searchedLog in searchedLogList:
+            for searchedLog in searchedLogJob:
                 if not searchedLog:
                     continue
-                # print 'searchedLog: %s --> filePath: %s ' % (searchedLog, file_path)
-                logTime = re.search(reTimeStr, str(searchedLog)).group(1)
-                analyLogBean = AnalyticsLogBean()
-                analyLogBean.keyword = self.analyKeyword
-                analyLogBean.logTxt = searchedLog
-                analyLogBean.filePath = file_path
-                analyLogBean.logTime = logTime
-                self.filterAnalyLog2List(self.analyticsLogList, analyLogBean)
-                # print '--> searchKeywordCallBack status: %d --> threadName: %s --> filePath: %s'
-                #     % (status, threading.currentThread().getName(), file_path)
+                self.filterAnalyLog2List(self.analyticsLogList, searchedLog)
 
     # 多进程操作文件，搜索基础信息
     def searchBaseAttrByMultiProcess(self, file_path):
-        searchKeywordMultiProcess = SearchByMultiProcess(file_path, self.baseAttrKeyword, self, self.searchBaseAttrCallBack)
-        searchKeywordMultiProcess.createAndDoJobs()
+        searchBaseAttrMultiProcess = SearchBaseAttrByMultiProcess(file_path, self, self.searchBaseAttrCallBack, self.baseAttrKeyword)
+        searchBaseAttrMultiProcess.createAndDoJobs()
 
     # 多进程操作文件，用于状态回调
     @staticmethod
@@ -425,20 +407,13 @@ class CallFailWindow(QtGui.QMainWindow):
             return
         if not searchedBaseAttrJobs:
             return
-        for searchedBaseAttrStr in searchedBaseAttrJobs:
-            if not searchedBaseAttrStr:
+        for searchedBaseAttrJob in searchedBaseAttrJobs:
+            if not searchedBaseAttrJob:
                 continue
-            baseAttrJson = self.filterBaseAttr2Json(searchedBaseAttrStr)
-            # print '==> baseAttrJsonDict: ', baseAttrJson
-            if baseAttrJson:
-                baseAttr = BaseAttrBean()
-                baseAttr.binderNumber = baseAttrJson['mId']
-                baseAttr.machineMode = baseAttrJson['devName']
-                baseAttr.osVersion = baseAttrJson['osVer']
-                # print 'baseAttr: ', baseAttr
-                self.filterBaseAttr2List(self.baseAttrList, baseAttr)
-        # 清空本次搜素到的数据， 已放入baseAttrList集合中
-        # searchedBaseAttrLines = ""
+            for searchedBaseAttr in searchedBaseAttrJob:
+                if not searchedBaseAttr:
+                    continue
+                self.filterBaseAttr2List(self.baseAttrList, searchedBaseAttr)
 
     # 在文件中，搜索关键字，并返回该关键字所在的行数据
     def searchWordInFile(self, keyword, file_path, log_call_back=None):
