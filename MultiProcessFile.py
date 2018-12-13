@@ -46,6 +46,7 @@ class MultiProcessFile:
                 yield chunkStart, chunkEnd - chunkStart
                 if chunkEnd > fileEnd:
                     break
+            f.close()
 
     def createAndDoJobs(self):
         if self.statusCallBack:
@@ -60,7 +61,6 @@ class MultiProcessFile:
             # print '---type(process): ', self.processFunc
             # 需要注意传递的格式类型：函数和参数
             jobs.append(pool.apply_async(self.processFunc, (self.fname, chunkStart, chunkSize, self.keyword, )))
-            # jobs.append(pool.apply_async(self.processFunc, (self.keyword, self.fname, chunkStart, chunkSize,)))
         # wait for all jobs to finish
         pool.close()
         pool.join()

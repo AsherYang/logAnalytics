@@ -292,6 +292,7 @@ class CallFailWindow(QtGui.QMainWindow):
         #     threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=filePathList)
         #     threadUtil.setDaemon(True)
         #     threadUtil.start()
+        # self.doSearchFile(supportFilePaths)
         # 去除多线程分组，默认采用多进程分析文件，避免同时使用多线程的情况下使用多进程，否则电脑会被冲爆
         threadUtil = ThreadUtil(funcName=self.doSearchFile, filePaths=supportFilePaths)
         threadUtil.setDaemon(True)

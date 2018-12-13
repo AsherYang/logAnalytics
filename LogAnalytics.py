@@ -27,6 +27,7 @@ from WinRightKeyReg import RegisterLogAnalyticsWinKey
 from CallFailWindow import CallFailWindow
 from EncodeUtil import _translate, _fromUtf8
 from IconResourceUtil import resource_path
+import multiprocessing
 
 reload(sys)
 # print sys.getdefaultencoding()
@@ -795,4 +796,5 @@ def main():
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     main()
