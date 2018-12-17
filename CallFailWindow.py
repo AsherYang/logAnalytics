@@ -583,7 +583,8 @@ class CallFailWindow(QtGui.QMainWindow):
                     fileDirPath = os.path.join(str(self.selectDirectoryLineEdit.text()), binderNumber)
             FileUtil.mkdirNotExist(fileDirPath)
             print 'docFilePath: ', fileDirPath
-            filePath = os.path.join(fileDirPath, u'问题分析.txt')
+            fileName = binderNumber + u'_问题分析.txt'
+            filePath = os.path.join(fileDirPath, fileName)
             hasFileExists = os.path.exists(filePath)
             docFile = open(filePath, 'a+')
             docContentBinderNumber = str(docTempleteBinder + binderNumber).encode('utf-8')
