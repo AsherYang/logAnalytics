@@ -179,7 +179,7 @@ class CallFailWindow(QtGui.QMainWindow):
         # print 'binderNumberFilePath: ', filePath
         binderNumberListStr = ''
         try:
-            data = xlrd.open_workbook(filePath)
+            data = xlrd.open_workbook(unicode(filePath))
             binderNumberTable = data.sheets()[0]
             # print 'table row: ', binderNumberTable.nrows
             # print 'table col: ', binderNumberTable.ncols
@@ -623,7 +623,7 @@ class CallFailWindow(QtGui.QMainWindow):
             logMsg = u'您尚未选择日志文件路径! 请先选择日志路径。'
             self.appendLog(logMsg)
             return
-        os.startfile(selectDir)
+        os.startfile(unicode(selectDir))
 
     # 需要去除包含以下关键字的路径
     def removeThePathKeys(self):

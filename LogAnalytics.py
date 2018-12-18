@@ -25,6 +25,7 @@ from RunSysCommand import RunCopyXTCLogCmd
 from WinRightKeyReg import RegisterCmdWinKey
 from WinRightKeyReg import RegisterLogAnalyticsWinKey
 from CallFailWindow import CallFailWindow
+from SplitExcelWindow import SplitExcelWindow
 from EncodeUtil import _translate, _fromUtf8
 from IconResourceUtil import resource_path
 import multiprocessing
@@ -145,6 +146,12 @@ class Ui_MainWidget(object):
                                                   QtCore.SIGNAL('copyLogTipSignal(QString)'),
                                                   self.showCopyLogTips)
         tools.addAction(self.toolCopyXtcLauncherLogAction)
+        tools.addSeparator()
+        # split excel data tools.
+        self.toolSplitExcelAction = QtGui.QAction('split excel data', mainWindow)
+        self.toolSplitExcelAction.setStatusTip(_fromUtf8('拆分Excel 数据'))
+        self.toolSplitExcelAction.connect(self.toolSplitExcelAction, QtCore.SIGNAL('triggered()'), self.showSplitExcelDialog)
+        tools.addAction(self.toolSplitExcelAction)
         tools.addSeparator()
 
         # 添加到 mainWindow
@@ -670,6 +677,9 @@ class Ui_MainWidget(object):
         cfwin = CallFailWindow(self.mainwindow)
         cfwin.show()
 
+    def showSplitExcelDialog(self):
+        spExcelWin = SplitExcelWindow(self.mainwindow)
+        spExcelWin.show()
 
 # Load filter item
 class CustomFilterItemWidget(QtGui.QWidget):
