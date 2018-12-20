@@ -314,6 +314,10 @@ class SplitExcelWindow(QtGui.QMainWindow):
     def emitTrayMsgSignal(self, trayMsg):
         self.tray.emit(QtCore.SIGNAL('showTrayMsgSignal(QString)'), trayMsg)
 
+    def keyPressEvent(self, event):
+        # 设置 "Ctrl+w" 快捷键，用于关闭 tab
+        if event.key() == QtCore.Qt.Key_W and event.modifiers() == QtCore.Qt.ControlModifier:
+            self.close()
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
