@@ -17,6 +17,7 @@ def getFileName(filePath):
     fileName = 'UnKnownFile'
     if not filePath:
         return fileName
+    filePath = unicode(filePath)
     return os.path.basename(filePath)
 
 
@@ -25,6 +26,7 @@ def getFileExt(filePath):
     fileExt = 'UnknownFileExt'
     if not filePath:
         return fileExt
+    filePath = unicode(filePath)
     return os.path.splitext(filePath)[1][1:].lower()
 
 
@@ -32,6 +34,7 @@ def getFileExt(filePath):
 def getFilePathWithName(filePath):
     if not filePath:
         return './'
+    filePath = unicode(filePath)
     return os.path.splitext(filePath)[0]
 
 
@@ -39,11 +42,13 @@ def getFilePathWithName(filePath):
 def getFileDir(filePath):
     if not filePath:
         return './'
+    filePath = unicode(filePath)
     return os.path.dirname(filePath)
 
 
 # 获取指定目录及其子目录下, 所有文件
 def getAllFiles(dir):
+    dir = unicode(dir)
     fileList = []
     for root, dirs, files in os.walk(dir):
         for file in files:
@@ -54,6 +59,8 @@ def getAllFiles(dir):
 # 获取指定目录及其子目录下，指定文件名的文件
 def getAllFilesByExt(dir, fileExt):
     fileList = []
+    dir = unicode(dir)
+    fileExt = unicode(fileExt)
     if not fileExt:
         return fileList
     for root, dirs, files in os.walk(dir):

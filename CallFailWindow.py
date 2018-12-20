@@ -11,7 +11,6 @@ Desc  : 掉话自动分析对话框
 import StringIO
 import os
 import sys
-import zipfile
 import re
 import json
 
@@ -26,9 +25,8 @@ from EncodeUtil import _translate, _translateUtf8
 from QtFontUtil import QtFontUtil
 from TrayIcon import TrayIcon
 from ThreadUtil import ThreadUtil
+from ZipFileUtil import ZipFileUtil
 from analyticslog.CallFailBean import CallFailBean
-from analyticslog.AnalyticsLogBean import AnalyticsLogBean
-from analyticslog.BaseAttrBean import BaseAttrBean
 from SearchKeywordByMultiProcess import SearchKeywordByMultiProcess
 from SearchBaseAttrByMultiProcess import SearchBaseAttrByMultiProcess
 from IconResourceUtil import resource_path
@@ -233,20 +231,8 @@ class CallFailWindow(QtGui.QMainWindow):
         if not selectDir:
             log_call_back(u'您尚未选择日志文件路径! 请先选择日志路径。')
             return
-        allZipFileList = FileUtil.getAllFilesByExt(selectDir, 'zip')
-        if not allZipFileList:
-            logStr = u'在目录 ' + _translateUtf8(selectDir) + u' 及子目录下未找到 zip 文件'
-            log_call_back(logStr)
-            return
-        for file_path in allZipFileList:
-            log_txt = u'正在解压文件: ' + _translateUtf8(file_path)
-            log_call_back(log_txt)
-            # print str(_translateUtf8(file_path))
-            dest_dir = _translateUtf8(FileUtil.getFilePathWithName(file_path))
-            zip_ref = zipfile.ZipFile(str(file_path), 'r')
-            # FileUtil.mkdirNotExist(str(dest_dir)) # zipfile 会自动创建
-            zip_ref.extractall(str(dest_dir))
-            zip_ref.close()
+        zipFileUtil = ZipFileUtil(log_call_back)
+        zipFileUtil.recursiveUnZipFile(selectDir)
         log_call_back(u'解压完成')
 
     # 点击分析日志按钮
