@@ -38,7 +38,7 @@ class ZipFileUtil:
             self.doCallBack(log_txt)
             # print str(_translateUtf8(file_path))
             dest_dir = _translateUtf8(FileUtil.getFilePathWithName(file_path))
-            zip_ref = zipfile.ZipFile(str(file_path), 'r')
+            zip_ref = zipfile.ZipFile(unicode(file_path), 'r')
             # FileUtil.mkdirNotExist(str(dest_dir)) # zipfile 会自动创建
             zip_ref.extractall(unicode(dest_dir))
             zip_ref.close()
@@ -50,7 +50,7 @@ class ZipFileUtil:
             if FileUtil.getFileExt(dest_dir).find('tar') != -1:
                 dest_dir = str(_translateUtf8(FileUtil.getFilePathWithName(dest_dir)))
                 # print '----dest_dir: ', dest_dir
-            tarf = tarfile.open(file_path)
+            tarf = tarfile.open(unicode(file_path))
             tarf.extractall(unicode(dest_dir))
             tarf.close()
             self.recursiveUnZipFile(dest_dir)
