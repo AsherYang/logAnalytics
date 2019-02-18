@@ -757,7 +757,6 @@ class LogMainWindow(QtGui.QMainWindow):
                 filePath = str(url.toLocalFile()).decode('utf-8')
                 # print filePath
                 self.emit(QtCore.SIGNAL('dropOpenFileSignal(QString)'), filePath)
-
         return
 
     def closeCurrentTabSignal(self):
@@ -806,5 +805,7 @@ def main():
 
 
 if __name__ == '__main__':
+    # Windows 平台要加上这句，避免 RuntimeError
+    # https://jingsam.github.io/2015/12/31/multiprocessing.html
     multiprocessing.freeze_support()
     main()
